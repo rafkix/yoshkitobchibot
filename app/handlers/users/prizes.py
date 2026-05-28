@@ -13,7 +13,7 @@ PRIZES_TEXT = (
     "🎖 <b>4-o'rin</b> — 1 oylik Premium obuna\n"
     "🎖 <b>5-o'rin</b> — 1 oylik Premium obuna\n\n"
     "✨ O'qi, o'rgan, yarat!\n"
-    "#Yoshkitobchi #Yoshkitobchi2026"
+    "yoshkitobchi.uz"
 )
 
 
