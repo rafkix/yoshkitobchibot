@@ -89,7 +89,6 @@ async def admin_stats(message: Message):
 async def admin_ad(message: Message):
     await message.answer("📢 Reklama boshqaruvi:", reply_markup=admin_ads())
 
-
 # =========================
 # BROADCAST
 # =========================
