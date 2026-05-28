@@ -6,6 +6,7 @@ from .menu import router as menu_router
 from .prizes import router as prizes_router
 from .test import router as test_router
 
+
 def setup(dp: Dispatcher):
     """
     Botning routerlarini ulash uchun setup funksiyasi.
@@ -16,5 +17,5 @@ def setup(dp: Dispatcher):
         help_router,
         menu_router,
         prizes_router,
-        test_router, 
+        test_router,
     )

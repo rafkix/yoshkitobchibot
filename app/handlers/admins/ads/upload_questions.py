@@ -95,7 +95,7 @@ def back_button(callback_data: str = "admin:menu"):
 # =========================================================
 
 
-@router.message(F.text == "📄 Testlar Bo‘limi", IsAdmin(admin_ids=ADMINS))
+@router.message(F.text == "📋 Testlar ro‘yxati", IsAdmin(admin_ids=ADMINS))
 async def admin_panel(message: Message):
     await message.answer(
         "⚙️ <b>Test panel</b>\n\nNimani qilmoqchisiz?",

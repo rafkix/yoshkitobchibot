@@ -9,15 +9,15 @@ from .ads.upload_questions import router as upload_questions_router
 
 
 def setup(dp: Dispatcher):
-     """
-     Botning routerlarini ulash uchun setup funksiyasi.
-     """
-     dp.include_routers(
-          main_admin_router,
-          channels,
-          view_channels_router,
-          delete_channel_router,
-          admin_ads_router,
-          ads,
-          upload_questions_router,
-     )
+    """
+    Botning routerlarini ulash uchun setup funksiyasi.
+    """
+    dp.include_routers(
+        main_admin_router,
+        channels,
+        view_channels_router,
+        delete_channel_router,
+        admin_ads_router,
+        ads,
+        upload_questions_router,
+    )

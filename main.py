@@ -39,7 +39,7 @@ async def main():
     handlers.setup(dp)
     setup_logger()
     middlewares.setup(dp)
-    await init_db()
+    # await init_db()
     dp.update.outer_middleware(db_middleware)
     # router.message.middleware(middleware=ThrottlingMiddleware())
     await set_bot_commands(bot)
