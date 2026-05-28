@@ -17,7 +17,7 @@ PRIZES_TEXT = (
 )
 
 
-@router.message(F.text == "🎁 Sovg'alar")
+@router.message(F.text == "🎁 Sovg‘alar")
 async def prizes_handler(message: Message):
     try:
         await message.answer_photo(
