@@ -67,7 +67,7 @@ EXTERNAL_LINK_TEXT = """🔗 Havola kiriting:
 
 Masalan: <code>https://site.com</code> yoki <code>https://t.me/kanal</code>
 
-Iltimos, yuqoridagi kabi to‘g'ri formatda havolani kiriting."""
+Iltimos, yuqoridagi kabi to‘g‘ri formatda havolani kiriting."""
 
 TYPE_LABELS = {
     "telegram_channel": "📢 Ommaviy / Shaxsiy (Kanal · Guruh)",

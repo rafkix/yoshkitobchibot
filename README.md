@@ -1,6 +1,6 @@
 # 📚 Yosh Kitobxon Bot
 
-**Yosh Kitobxon Bot** — O'zbekistondagi "Yosh Kitobxon 2026" tanloviga onlayn ro'yxatdan o'tishni avtomatlashtiruvchi Telegram bot. Bot foydalanuvchini qadam-baqadam ro'yxatdan o'tkazadi, obunani tekshiradi, referal tizimi orqali ball yig'ish imkonini beradi va admin paneli orqali to'liq boshqariladi.
+**Yosh Kitobxon Bot** — O'zbekistondagi "Yosh Kitobxon 2026" tanloviga onlayn ro'yxatdan o'tishni avtomatlashtiruvchi Telegram bot. Bot foydalanuvchini qadam-baqadam ro'yxatdan o'tkazadi, obunani tekshiradi, referal tizimi orqali ball yig‘ish imkonini beradi va admin paneli orqali to'liq boshqariladi.
 
 ---
 
@@ -66,7 +66,7 @@ yoshkitobchibot/
 │   └── utils/
 │       ├── constants.py           # Umumiy konstantalar
 │       ├── strings.py             # Bot xabarlari (matnlar)
-│       ├── db_filler.py           # Ma'lumotlar bazasini boshlang'ich to'ldirish
+│       ├── db_filler.py           # Ma'lumotlar bazasini boshlang‘ich to'ldirish
 │       ├── notify_admins.py       # Adminlarga bildirishnoma yuborish
 │       ├── set_bot_commands.py    # Bot komandalarini o'rnatish
 │       └── misc/
@@ -99,7 +99,7 @@ yoshkitobchibot/
 |---|---|---|
 | `user_id` | BigInteger | Telegram ID (unique) |
 | `full_name` | String | F.I.Sh |
-| `birth_date` | Date | Tug'ilgan sana |
+| `birth_date` | Date | Tug‘ilgan sana |
 | `phone_number` | String | Telefon raqami (unique) |
 | `region` | String | Viloyat |
 | `district` | String | Tuman |
@@ -135,7 +135,7 @@ Bot FSM (Finite State Machine) yordamida foydalanuvchini quyidagi ketma-ket bosq
        ↓
   F.I.Sh kiritish
        ↓
-  Tug'ilgan sana (DD.MM.YYYY)
+  Tug‘ilgan sana (DD.MM.YYYY)
        ↓
   Viloyat tanlash (reply keyboard)
        ↓
@@ -173,7 +173,7 @@ Bot har bir xabar va callback qo'yida barcha faol kanallarni tekshiradi:
 
 ## 🔑 Referal tizimi
 
-Har bir foydalanuvchining shaxsiy havolasi `https://t.me/<bot>?start=<user_id>` ko'rinishida bo'ladi. Yangi foydalanuvchi bu havola orqali kelganda `referred_by` maydoni saqlanadi va referal ball yig'ila boshlaydi.
+Har bir foydalanuvchining shaxsiy havolasi `https://t.me/<bot>?start=<user_id>` ko'rinishida bo'ladi. Yangi foydalanuvchi bu havola orqali kelganda `referred_by` maydoni saqlanadi va referal ball yig‘ila boshlaydi.
 
 ---
 
