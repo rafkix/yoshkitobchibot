@@ -7,11 +7,11 @@ PRIZES_PHOTO_PATH = "/home/ubuntu/apps/yoshkitobchibot/media/prizes.png"
 
 PRIZES_TEXT = (
     "🏆 <b>YOSHKITOBCHI 2026 — Sovg‘alar</b>\n\n"
-    "🥇 <b>1-o‘rin</b> — Planshet\n"
-    "🥈 <b>2-o‘rin</b> — 6 oylik Premium obuna\n"
-    "🥉 <b>3-o‘rin</b> — 3 oylik Premium obuna\n"
-    "🎖 <b>4-o‘rin</b> — 1 oylik Premium obuna\n"
-    "🎖 <b>5-o‘rin</b> — 1 oylik Premium obuna\n\n"
+    "🥇 <b>1-o‘rin</b> — Planshet(Redmi Pad SE)\n"
+    "🥈 <b>2-o‘rin</b> — 3 oylik Premium obuna\n"
+    "🥉 <b>3-o‘rin</b> — 1 oylik Premium obuna\n"
+    "🎖 <b>4-o‘rin</b> — Kitoblar to‘plami\n"
+    "🎖 <b>5-o‘rin</b> — Kitoblar to‘plami\n\n"
     "✨ o‘qi, o‘rgan, yarat!\n"
     "yoshkitobchi.uz"
 )
