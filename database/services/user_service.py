@@ -22,6 +22,19 @@ class UserService:
         return result.scalar_one_or_none()
 
     # =====================================================
+    # GET ALL
+    # =====================================================
+
+    async def get_all_users(
+        session: AsyncSession, active_only: bool = False
+    ) -> list[User]:
+        query = select(User)
+        if active_only:
+            query = query.where(User.is_registered.is_(True))
+        result = await session.execute(query)
+        return result.scalars().all()
+
+    # =====================================================
     # CREATE USER
     # =====================================================
 

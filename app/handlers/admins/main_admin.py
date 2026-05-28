@@ -9,14 +9,21 @@ from data.config import ADMINS
 from aiogram.fsm.context import FSMContext
 
 from database.database import session_maker
-from database.services.stats import count_active_users, count_active_users_since, count_left_users, count_new_users_since, count_total_users
+from database.services.stats import (
+    count_total_users,
+    count_registered_users,
+    count_unregistered_users,
+    count_new_users_since,
+    count_new_registered_users_since,
+)
 
 router = Router()
 
 
-ADMIN_TEXT = "🔐 Admin panel\nKerakli bo‘limni tanlang."
+ADMIN_TEXT = "🔐 Admin panel\nKerakli bo'limni tanlang."
 
 print(ADMINS)
+
 
 # =========================
 # PANEL
@@ -35,8 +42,9 @@ async def back_to_management(message: Message, state: FSMContext):
     await message.answer(
         ADMIN_TEXT,
         parse_mode="HTML",
-        reply_markup=admin_menu(),  # sendagi asosiy reply keyboard
+        reply_markup=admin_menu(),
     )
+
 
 # =========================
 # STATISTICS
@@ -45,34 +53,34 @@ async def back_to_management(message: Message, state: FSMContext):
 async def admin_stats(message: Message):
     async with session_maker() as session:
         total = await count_total_users(session)
-        active = await count_active_users(session)
-        left = await count_left_users(session)
+        registered = await count_registered_users(session)
+        unregistered = await count_unregistered_users(session)
 
         new_1d = await count_new_users_since(session, 1)
         new_7d = await count_new_users_since(session, 7)
         new_30d = await count_new_users_since(session, 30)
 
-        act_1d = await count_active_users_since(session, 1)
-        act_7d = await count_active_users_since(session, 7)
-        act_30d = await count_active_users_since(session, 30)
-
+        reg_1d = await count_new_registered_users_since(session, 1)
+        reg_7d = await count_new_registered_users_since(session, 7)
+        reg_30d = await count_new_registered_users_since(session, 30)
 
     text = (
         "📊 <b>Statistika</b>\n"
         f"• Obunachilar soni: {total} ta\n"
-        f"• Faol obunachilar: {active} ta\n"
-        f"• Tark etganlar: {left} ta\n\n"
-        "📈 <b>Obunachilar qo‘shilishi</b>\n"
+        f"• Ro'yxatdan o'tganlar: {registered} ta\n"
+        f"• Ro'yxatdan o'tmagan: {unregistered} ta\n\n"
+        "📈 <b>Obunachilar qo'shilishi</b>\n"
         f"• Oxirgi 24 soat: +{new_1d}\n"
         f"• Oxirgi 7 kun: +{new_7d}\n"
         f"• Oxirgi 30 kun: +{new_30d}\n\n"
-        "📊 <b>Faollik</b>\n"
-        f"• 24 soat: {act_1d}\n"
-        f"• 7 kun: {act_7d}\n"
-        f"• 30 kun: {act_30d}\n\n"
+        "📊 <b>Ro'yxatdan o'tish</b>\n"
+        f"• 24 soat: {reg_1d}\n"
+        f"• 7 kun: {reg_7d}\n"
+        f"• 30 kun: {reg_30d}\n\n"
     )
 
     await message.answer(text, parse_mode="HTML", reply_markup=admin_menu())
+
 
 # =========================
 # ADS
