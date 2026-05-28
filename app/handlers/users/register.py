@@ -488,11 +488,10 @@ async def confirm_registration(callback: CallbackQuery, state: FSMContext):
 
     await state.clear()
     await callback.message.edit_text(
-        "<b>Tabriklaymiz, siz muvaffaqiyatli ro‘yxatdan o‘tdingiz!</b>",
-        reply_markup=main_menu_keyboard,
+        "<b>Tabriklaymiz, siz muvaffaqiyatli ro'yxatdan o'tdingiz!</b>",
     )
     await callback.message.answer(
-        "",
+        "Asosiy menyu:",
         reply_markup=main_menu_keyboard(),
     )
     await callback.answer()
