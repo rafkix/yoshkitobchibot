@@ -3,7 +3,7 @@ from aiogram.types import Message
 
 router = Router()
 
-PRIZES_PHOTO_URL = "https://your-image-url.jpg"  # <- rasmni shu yerga qo'ying
+PRIZES_PHOTO_URL = "https://www.yoshkitobchi.uz/media/prizes.png"  # <- rasmni shu yerga qo'ying
 
 PRIZES_TEXT = (
     "🏆 <b>YOSHKITOBCHI 2026 — Sovg‘alar</b>\n\n"
