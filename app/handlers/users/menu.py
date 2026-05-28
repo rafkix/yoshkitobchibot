@@ -40,13 +40,13 @@ share_keyboard = InlineKeyboardMarkup(
 router = Router()
 
 
-@router.message(F.text == "📄 Test")
-async def test_handler(message: Message) -> None:
-    """Handle the "Test" button.
+# @router.message(F.text == "📄 Test")
+# async def test_handler(message: Message) -> None:
+#     """Handle the "Test" button.
 
-    Currently a placeholder – you can replace the text with the real implementation.
-    """
-    await message.answer("🧪 Test bo‘limi hali ishlab chiqilmoqda.")
+#     Currently a placeholder – you can replace the text with the real implementation.
+#     """
+#     await message.answer("🧪 Test bo‘limi hali ishlab chiqilmoqda.")
 
 
 @router.message(F.text == "📊 Reyting")

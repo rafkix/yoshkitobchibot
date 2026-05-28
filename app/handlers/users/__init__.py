@@ -4,6 +4,7 @@ from .register import router as register_router
 from .help import router as help_router
 from .menu import router as menu_router
 from .prizes import router as prizes_router
+from .test import router as test_router
 
 def setup(dp: Dispatcher):
     """
@@ -14,5 +15,6 @@ def setup(dp: Dispatcher):
         register_router,
         help_router,
         menu_router,
-        prizes_router
+        prizes_router,
+        test_router, 
     )

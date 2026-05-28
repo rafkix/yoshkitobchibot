@@ -6,7 +6,7 @@ def rasch_ability(
 ) -> float:
     """
     Dichotomous Rasch modelida foydalanuvchi qobiliyatini (theta) hisoblaydi.
-    correct_answers: [1.0, 0.0, 1.0, ...] — to'g'ri=1, noto'g'ri=0
+    correct_answers: [1.0, 0.0, 1.0, ...] — to‘g‘ri=1, noto‘g‘ri=0
     difficulties:    [0.5, -1.2, 1.3, ...] — har bir savolning b parametri
     Qaytaradi: theta (odatda -4 dan +4 gacha)
     """
@@ -18,7 +18,7 @@ def rasch_ability(
 
         for x, b in zip(correct_answers, difficulties):
             exp = math.exp(theta - b)
-            p = exp / (1 + exp)  # P(to'g'ri) = e^(θ-b) / (1 + e^(θ-b))
+            p = exp / (1 + exp)  # P(to‘g‘ri) = e^(θ-b) / (1 + e^(θ-b))
             numerator += x - p  # residual
             denominator += p * (1 - p)  # Fisher info
 
@@ -32,7 +32,7 @@ def rasch_ability(
 
 def theta_to_score(theta: float, min_score: int = 0, max_score: int = 100) -> int:
     """
-    Theta (-4..+4) ni 0-100 ballik shkala ga o'tkazadi.
+    Theta (-4..+4) ni 0-100 ballik shkala ga o‘tkazadi.
     """
     normalized = (theta + 4) / 8  # 0.0 dan 1.0 gacha
     normalized = max(0.0, min(1.0, normalized))

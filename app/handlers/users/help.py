@@ -4,7 +4,7 @@ from aiogram.filters import Command
 
 router = Router()
 
-HELP_TEXT = """📋 <b>Yordam bo'limi</b>
+HELP_TEXT = """📋 <b>Yordam bo‘limi</b>
 
 <b>Asosiy buyruqlar:</b>
 /start — Botni ishga tushirish yoki menyuga qaytish
@@ -13,19 +13,19 @@ HELP_TEXT = """📋 <b>Yordam bo'limi</b>
 <b>Menyu tugmalari:</b>
 
 📄 <b>Test</b>
-Bilimingizni sinab ko'rish uchun testlar. To'g‘ri javoblar uchun ball beriladi.
+Bilimingizni sinab ko‘rish uchun testlar. To‘g‘ri javoblar uchun ball beriladi.
 
 📊 <b>Reyting</b>
-Barcha ishtirokchilar orasidagi o'rningizni va top 10 foydalanuvchilarni ko'ring.
+Barcha ishtirokchilar orasidagi o‘rningizni va top 10 foydalanuvchilarni ko‘ring.
 
 👤 <b>Profil</b>
 Shaxsiy ma'lumotlaringiz: ism, yashash joyi, telefon, tanlov va umumiy ballingiz.
 
 🗞 <b>Targ‘ibot</b>
-Do'stlaringizni taklif qiling. Har bir ro'yxatdan o'tgan do'st uchun bonus ball olasiz.
+Do‘stlaringizni taklif qiling. Har bir ro‘yxatdan o‘tgan do‘st uchun bonus ball olasiz.
 
-<b>Ro'yxatdan o'tish:</b>
-Botdan to'liq foydalanish uchun bir marta ro'yxatdan o'tish talab etiladi. Buning uchun /start bosing va ko'rsatmalarga amal qiling.
+<b>Ro‘yxatdan o‘tish:</b>
+Botdan to‘liq foydalanish uchun bir marta ro‘yxatdan o‘tish talab etiladi. Buning uchun /start bosing va ko‘rsatmalarga amal qiling.
 
 <b>Muammo yuzaga keldimi?</b>
 @yoshkitobchi_admin ga murojaat qiling."""

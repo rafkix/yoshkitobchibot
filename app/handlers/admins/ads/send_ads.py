@@ -14,7 +14,7 @@ from app.keyboards.inline import admin_ads_send, cancel_ads_keyboard
 from app.states.ads import SendAds, SendCopy
 from data.config import ADMINS
 
-from database.services.user_service import get_all_users
+from database.services.user_service import UserService
 from database.database import session_maker
 
 router = Router()
@@ -73,7 +73,7 @@ async def cancel_ads_callback(callback: CallbackQuery, state: FSMContext):
 
 async def fetch_active_users():
     async with session_maker() as session:
-        users = await get_all_users(session, active_only=True)
+        users = await UserService.get_all_users(session, active_only=True)
         return users
 
 

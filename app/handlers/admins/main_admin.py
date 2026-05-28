@@ -20,7 +20,7 @@ from database.services.stats import (
 router = Router()
 
 
-ADMIN_TEXT = "🔐 Admin panel\nKerakli bo'limni tanlang."
+ADMIN_TEXT = "🔐 Admin panel\nKerakli bo‘limni tanlang."
 
 print(ADMINS)
 
@@ -67,13 +67,13 @@ async def admin_stats(message: Message):
     text = (
         "📊 <b>Statistika</b>\n"
         f"• Obunachilar soni: {total} ta\n"
-        f"• Ro'yxatdan o'tganlar: {registered} ta\n"
-        f"• Ro'yxatdan o'tmagan: {unregistered} ta\n\n"
-        "📈 <b>Obunachilar qo'shilishi</b>\n"
+        f"• Ro‘yxatdan o‘tganlar: {registered} ta\n"
+        f"• Ro‘yxatdan o‘tmagan: {unregistered} ta\n\n"
+        "📈 <b>Obunachilar qo‘shilishi</b>\n"
         f"• Oxirgi 24 soat: +{new_1d}\n"
         f"• Oxirgi 7 kun: +{new_7d}\n"
         f"• Oxirgi 30 kun: +{new_30d}\n\n"
-        "📊 <b>Ro'yxatdan o'tish</b>\n"
+        "📊 <b>Ro‘yxatdan o‘tish</b>\n"
         f"• 24 soat: {reg_1d}\n"
         f"• 7 kun: {reg_7d}\n"
         f"• 30 kun: {reg_30d}\n\n"

@@ -7,6 +7,7 @@ from sqlalchemy import (
     Boolean,
     Date,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -256,3 +257,89 @@ class Ad(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
     )
+
+
+# =========================================================
+# TEST — Admin yaratgan test nomlari
+# =========================================================
+
+
+class Test(Base):
+    __tablename__ = "tests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC)
+    )
+
+    # Relationships
+    questions: Mapped[list["Question"]] = relationship(
+        "Question", back_populates="test"
+    )
+    sessions: Mapped[list["TestSession"]] = relationship(
+        "TestSession", back_populates="test"
+    )
+
+
+# =========================================================
+# QUESTION — Test savollari
+# =========================================================
+
+
+class Question(Base):
+    __tablename__ = "questions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # ← YANGI: qaysi testga tegishli
+    test_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("tests.id"), nullable=False
+    )
+
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    option_a: Mapped[str] = mapped_column(String(500), nullable=False)
+    option_b: Mapped[str] = mapped_column(String(500), nullable=False)
+    option_c: Mapped[str] = mapped_column(String(500), nullable=False)
+    option_d: Mapped[str] = mapped_column(String(500), nullable=False)
+    correct: Mapped[str] = mapped_column(String(1), nullable=False)
+    difficulty: Mapped[float] = mapped_column(Float, default=0.0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC)
+    )
+
+    # Relationship
+    test: Mapped["Test"] = relationship("Test", back_populates="questions")
+
+
+# =========================================================
+# TEST SESSION — Foydalanuvchi test sessiyasi
+# =========================================================
+
+
+class TestSession(Base):
+    __tablename__ = "test_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.user_id"), nullable=False, unique=True
+    )
+
+    # ← YANGI: qaysi test sessiyasi
+    test_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("tests.id"), nullable=False
+    )
+
+    question_ids: Mapped[list] = mapped_column(JSON, nullable=False)
+    answers: Mapped[dict] = mapped_column(JSON, default=dict)
+    rasch_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC)
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # Relationship
+    test: Mapped["Test"] = relationship("Test", back_populates="sessions")

@@ -1,6 +1,6 @@
 # 📚 Yosh Kitobxon Bot
 
-**Yosh Kitobxon Bot** — O'zbekistondagi "Yosh Kitobxon 2026" tanloviga onlayn ro'yxatdan o'tishni avtomatlashtiruvchi Telegram bot. Bot foydalanuvchini qadam-baqadam ro'yxatdan o'tkazadi, obunani tekshiradi, referal tizimi orqali ball yig‘ish imkonini beradi va admin paneli orqali to'liq boshqariladi.
+**Yosh Kitobxon Bot** — o‘zbekistondagi "Yosh Kitobxon 2026" tanloviga onlayn ro‘yxatdan o‘tishni avtomatlashtiruvchi Telegram bot. Bot foydalanuvchini qadam-baqadam ro‘yxatdan o‘tkazadi, obunani tekshiradi, referal tizimi orqali ball yig‘ish imkonini beradi va admin paneli orqali to‘liq boshqariladi.
 
 ---
 
@@ -10,12 +10,12 @@
 yoshkitobchibot/
 │
 ├── main.py                        # Botni ishga tushiradigan asosiy fayl
-├── api.py                         # O'zbekiston hududlari ma'lumotini yuklash skripti
-├── requirements.txt               # Kutubxonalar ro'yxati (pip freeze)
-├── .env                           # Muhit o'zgaruvchilari (token, adminlar, IP)
+├── api.py                         # o‘zbekiston hududlari ma'lumotini yuklash skripti
+├── requirements.txt               # Kutubxonalar ro‘yxati (pip freeze)
+├── .env                           # Muhit o‘zgaruvchilari (token, adminlar, IP)
 │
 ├── data/
-│   ├── config.py                  # .env dan BOT_TOKEN, ADMINS, IP ni o'qish
+│   ├── config.py                  # .env dan BOT_TOKEN, ADMINS, IP ni o‘qish
 │   └── checking.py                # Foydalanuvchini kanalda a'zo ekanligini tekshirish
 │
 ├── database/
@@ -28,12 +28,12 @@ yoshkitobchibot/
 │
 ├── middlewares/
 │   ├── checking_middlewares.py    # Obuna tekshirish middleware (SubscriptionMiddleware)
-│   ├── throttling.py              # So'rovlar chastotasini cheklash
+│   ├── throttling.py              # So‘rovlar chastotasini cheklash
 │   └── __init__.py                # Middlewareni dispatcherga ulash
 │
 ├── app/
 │   ├── data/
-│   │   ├── regions.json           # O'zbekiston viloyatlari
+│   │   ├── regions.json           # o‘zbekiston viloyatlari
 │   │   ├── districts.json         # Tumanlar
 │   │   └── villages.json          # MFY lar (mahallalar)
 │   │
@@ -43,15 +43,15 @@ yoshkitobchibot/
 │   ├── handlers/
 │   │   ├── users/
 │   │   │   ├── start.py           # /start komandasi va referal tizimi
-│   │   │   ├── register.py        # Ro'yxatdan o'tish oqimi (FSM)
+│   │   │   ├── register.py        # Ro‘yxatdan o‘tish oqimi (FSM)
 │   │   │   ├── menu.py            # Asosiy menyu
 │   │   │   └── help.py            # Yordam
 │   │   ├── admins/
 │   │   │   ├── main_admin.py      # /panel komandasi, reklama, xabar yuborish
 │   │   │   └── channels/
-│   │   │       ├── add_channel.py     # Kanal qo'shish
-│   │   │       ├── delete_channel.py  # Kanalni o'chirish
-│   │   │       └── view_channels.py   # Kanallar ro'yxati
+│   │   │       ├── add_channel.py     # Kanal qo‘shish
+│   │   │       ├── delete_channel.py  # Kanalni o‘chirish
+│   │   │       └── view_channels.py   # Kanallar ro‘yxati
 │   │   └── channels/
 │   │       └── chatjoin.py        # ChatJoinRequest hodisasini qayta ishlash
 │   │
@@ -60,21 +60,21 @@ yoshkitobchibot/
 │   │   └── inline.py              # Inline klaviaturalar
 │   │
 │   ├── states/
-│   │   ├── register.py            # Ro'yxatdan o'tish holatlari (FSMState)
-│   │   └── add_channel.py         # Kanal qo'shish holatlari
+│   │   ├── register.py            # Ro‘yxatdan o‘tish holatlari (FSMState)
+│   │   └── add_channel.py         # Kanal qo‘shish holatlari
 │   │
 │   └── utils/
 │       ├── constants.py           # Umumiy konstantalar
 │       ├── strings.py             # Bot xabarlari (matnlar)
-│       ├── db_filler.py           # Ma'lumotlar bazasini boshlang‘ich to'ldirish
+│       ├── db_filler.py           # Ma'lumotlar bazasini boshlang‘ich to‘ldirish
 │       ├── notify_admins.py       # Adminlarga bildirishnoma yuborish
-│       ├── set_bot_commands.py    # Bot komandalarini o'rnatish
+│       ├── set_bot_commands.py    # Bot komandalarini o‘rnatish
 │       └── misc/
 │           ├── logging.py         # Logger sozlamalari
 │           └── throttling.py      # Throttling yordamchi funksiyalar
 │
 └── scripts/
-    └── add_user.py                # Foydalanuvchini qo'lda qo'shish skripti
+    └── add_user.py                # Foydalanuvchini qo‘lda qo‘shish skripti
 ```
 
 ---
@@ -87,8 +87,8 @@ yoshkitobchibot/
 | Aiogram | 3.21.0 | Telegram Bot Framework |
 | SQLAlchemy | 2.0.50 | Async ORM |
 | aiosqlite | 0.22.0 | SQLite async driver |
-| environs | 15.0.1 | .env faylini o'qish |
-| requests | 2.34.2 | Hudud API so'rovlari |
+| environs | 15.0.1 | .env faylini o‘qish |
+| requests | 2.34.2 | Hudud API so‘rovlari |
 
 ---
 
@@ -104,34 +104,34 @@ yoshkitobchibot/
 | `region` | String | Viloyat |
 | `district` | String | Tuman |
 | `neighborhood` | String | Mahalla |
-| `workplace` | String | Ish/o'qish joyi |
+| `workplace` | String | Ish/o‘qish joyi |
 | `contest` | Enum | Tanlov (`yosh_kitobxon_2026`) |
 | `direction` | Enum | Yosh toifasi (10-14, 15-19, 20-30) |
 | `referral_score` | Integer | Referal ballari |
 | `test_score` | Integer | Test ballari |
 | `total_score` | Integer | Umumiy ball |
 | `referred_by` | BigInteger | Kim taklif qildi (FK → users) |
-| `is_admin` | Boolean | Admin yoki yo'q |
-| `is_registered` | Boolean | Ro'yxatdan o'tgan yoki yo'q |
+| `is_admin` | Boolean | Admin yoki yo‘q |
+| `is_registered` | Boolean | Ro‘yxatdan o‘tgan yoki yo‘q |
 
 ### `Channel` — Majburiy obuna kanali
-Admin tomonidan qo'shilgan kanallar. `is_private` uchun join request orqali tekshiriladi, ochiq kanallarda `get_chat_member` ishlatiladi.
+Admin tomonidan qo‘shilgan kanallar. `is_private` uchun join request orqali tekshiriladi, ochiq kanallarda `get_chat_member` ishlatiladi.
 
 ### `ChannelJoin` — Obuna tarixi
-Qaysi foydalanuvchi qaysi kanalga qachon qo'shilgani va tark etgani qayd etiladi.
+Qaysi foydalanuvchi qaysi kanalga qachon qo‘shilgani va tark etgani qayd etiladi.
 
 ### `Ad` — Reklama
 Admin tomonidan boshqariladigan reklama bloklari (sarlavha, matn, tugmalar).
 
 ---
 
-## 🔄 Ro'yxatdan o'tish oqimi
+## 🔄 Ro‘yxatdan o‘tish oqimi
 
-Bot FSM (Finite State Machine) yordamida foydalanuvchini quyidagi ketma-ket bosqichlardan o'tkazadi:
+Bot FSM (Finite State Machine) yordamida foydalanuvchini quyidagi ketma-ket bosqichlardan o‘tkazadi:
 
 ```
 /start
-  └─ Yangi foydalanuvchi → [Ro'yxatdan o'tish tugmasi]
+  └─ Yangi foydalanuvchi → [Ro‘yxatdan o‘tish tugmasi]
        ↓
   F.I.Sh kiritish
        ↓
@@ -141,9 +141,9 @@ Bot FSM (Finite State Machine) yordamida foydalanuvchini quyidagi ketma-ket bosq
        ↓
   Tuman tanlash
        ↓
-  Mahalla tanlash (yoki qo'lda kiritish)
+  Mahalla tanlash (yoki qo‘lda kiritish)
        ↓
-  Ish/o'qish joyi
+  Ish/o‘qish joyi
        ↓
   Telefon raqami (Contact orqali)
        ↓
@@ -153,27 +153,27 @@ Bot FSM (Finite State Machine) yordamida foydalanuvchini quyidagi ketma-ket bosq
        ↓
   Ma'lumotlarni tasdiqlash (inline tugmalar)
        ↓
-  ✅ Ro'yxatdan o'tish yakunlandi → Asosiy menyu
+  ✅ Ro‘yxatdan o‘tish yakunlandi → Asosiy menyu
 ```
 
-Tasdiqlash sahifasida har bir maydonni alohida o'zgartirish mumkin — foydalanuvchi tegishli inline tugmani bosib, faqat kerakli qadamga qaytadi.
+Tasdiqlash sahifasida har bir maydonni alohida o‘zgartirish mumkin — foydalanuvchi tegishli inline tugmani bosib, faqat kerakli qadamga qaytadi.
 
 ---
 
 ## 🛡️ Obuna tekshirish (SubscriptionMiddleware)
 
-Bot har bir xabar va callback qo'yida barcha faol kanallarni tekshiradi:
+Bot har bir xabar va callback qo‘yida barcha faol kanallarni tekshiradi:
 
 - **Ochiq kanallar** — `get_chat_member` orqali a'zolik aniqlanadi
 - **Yopiq kanallar** — `ChannelJoin` jadvalidagi faol yozuv tekshiriladi
-- Obuna bo'lmagan kanallar uchun "Obuna bo'lish" tugmasi ko'rsatiladi
-- Adminlar ushbu tekshiruvdan o'tkazilmaydi
+- Obuna bo‘lmagan kanallar uchun "Obuna bo‘lish" tugmasi ko‘rsatiladi
+- Adminlar ushbu tekshiruvdan o‘tkazilmaydi
 
 ---
 
 ## 🔑 Referal tizimi
 
-Har bir foydalanuvchining shaxsiy havolasi `https://t.me/<bot>?start=<user_id>` ko'rinishida bo'ladi. Yangi foydalanuvchi bu havola orqali kelganda `referred_by` maydoni saqlanadi va referal ball yig‘ila boshlaydi.
+Har bir foydalanuvchining shaxsiy havolasi `https://t.me/<bot>?start=<user_id>` ko‘rinishida bo‘ladi. Yangi foydalanuvchi bu havola orqali kelganda `referred_by` maydoni saqlanadi va referal ball yig‘ila boshlaydi.
 
 ---
 
@@ -183,7 +183,7 @@ Har bir foydalanuvchining shaxsiy havolasi `https://t.me/<bot>?start=<user_id>` 
 
 - **📢 Reklama** — reklama blokini boshqarish
 - **📨 Xabar yuborish** — barcha foydalanuvchilarga broadcast
-- **📡 Kanallar** — majburiy obuna kanallarini qo'shish, ko'rish, o'chirish
+- **📡 Kanallar** — majburiy obuna kanallarini qo‘shish, ko‘rish, o‘chirish
 
 ---
 
@@ -204,7 +204,7 @@ source .venv/bin/activate        # Linux / macOS
 .venv\Scripts\activate           # Windows
 ```
 
-### 3. Kutubxonalarni o'rnatish
+### 3. Kutubxonalarni o‘rnatish
 
 ```bash
 pip install -r requirements.txt
@@ -218,15 +218,15 @@ ADMINS=123456789,987654321
 ip=0.0.0.0
 ```
 
-| O'zgaruvchi | Tavsif |
+| o‘zgaruvchi | Tavsif |
 |---|---|
 | `BOT_TOKEN` | BotFather dan olingan token |
 | `ADMINS` | Admin Telegram ID lari (vergul bilan) |
-| `ip` | Server IP manzili (agar kerak bo'lsa) |
+| `ip` | Server IP manzili (agar kerak bo‘lsa) |
 
 ### 5. Hudud ma'lumotlarini yangilash (ixtiyoriy)
 
-`app/data/` papkasidagi `regions.json`, `districts.json`, `villages.json` fayllari allaqachon to'ldirilgan. Agar yangilash kerak bo'lsa:
+`app/data/` papkasidagi `regions.json`, `districts.json`, `villages.json` fayllari allaqachon to‘ldirilgan. Agar yangilash kerak bo‘lsa:
 
 ```bash
 python api.py
