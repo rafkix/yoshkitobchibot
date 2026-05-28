@@ -11,20 +11,21 @@ async def count_total_users(session: AsyncSession) -> int:
     return int(result.scalar_one() or 0)
 
 
-async def count_active_users(session: AsyncSession) -> int:
+async def count_registered_users(session: AsyncSession) -> int:
+    """Users who completed registration."""
     result = await session.execute(
         select(func.count(User.user_id)).where(
-            User.is_active.is_(True),
-            User.is_blocked.is_(False),
+            User.is_registered.is_(True),
         )
     )
     return int(result.scalar_one() or 0)
 
 
-async def count_left_users(session: AsyncSession) -> int:
+async def count_unregistered_users(session: AsyncSession) -> int:
+    """Users who started the bot but never finished registration."""
     result = await session.execute(
         select(func.count(User.user_id)).where(
-            (User.is_active.is_(False)) | (User.is_blocked.is_(True))
+            User.is_registered.is_(False),
         )
     )
     return int(result.scalar_one() or 0)
@@ -38,13 +39,13 @@ async def count_new_users_since(session: AsyncSession, days: int) -> int:
     return int(result.scalar_one() or 0)
 
 
-async def count_active_users_since(session: AsyncSession, days: int) -> int:
+async def count_new_registered_users_since(session: AsyncSession, days: int) -> int:
+    """Registered users who joined within the last N days."""
     threshold = datetime.utcnow() - timedelta(days=days)
     result = await session.execute(
         select(func.count(User.user_id)).where(
-            User.last_activity_at.is_not(None),
-            User.last_activity_at >= threshold,
-            User.is_blocked.is_(False),
+            User.created_at >= threshold,
+            User.is_registered.is_(True),
         )
     )
     return int(result.scalar_one() or 0)
