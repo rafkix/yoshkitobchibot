@@ -3,7 +3,9 @@ from aiogram.types import Message
 
 router = Router()
 
-PRIZES_PHOTO_URL = "https://www.yoshkitobchi.uz/media/prizes.png"  # <- rasmni shu yerga qo'ying
+PRIZES_PHOTO_URL = (
+    "https://www.yoshkitobchi.uz/media/prizes.png"  # <- rasmni shu yerga qo'ying
+)
 
 PRIZES_TEXT = (
     "🏆 <b>YOSHKITOBCHI 2026 — Sovg‘alar</b>\n\n"
@@ -19,12 +21,8 @@ PRIZES_TEXT = (
 
 @router.message(F.text == "🎁 Sovg‘alar")
 async def prizes_handler(message: Message):
-    try:
-        await message.answer_photo(
-            photo=PRIZES_PHOTO_URL,
-            caption=PRIZES_TEXT,
-            parse_mode="HTML",
-        )
-    except Exception:
-        # Rasm yuklanmasa — faqat matn yuboradi
-        await message.answer(PRIZES_TEXT, parse_mode="HTML")
+    await message.answer_photo(
+        photo=PRIZES_PHOTO_URL,
+        caption=PRIZES_TEXT,
+        parse_mode="HTML",
+    )
