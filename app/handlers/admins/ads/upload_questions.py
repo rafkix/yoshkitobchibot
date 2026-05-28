@@ -70,7 +70,7 @@ def test_main_keyboard():
     )
     builder.add(
         InlineKeyboardButton(
-            text="📋 Testlar ro'yxati", callback_data="admin:list_tests"
+            text="📋 Testlar ro‘yxati", callback_data="admin:list_tests"
         )
     )
     builder.add(
@@ -78,7 +78,7 @@ def test_main_keyboard():
     )
     builder.add(InlineKeyboardButton(text="📊 Statistika", callback_data="admin:stat"))
     builder.add(
-        InlineKeyboardButton(text="🗑 Savollarni o'chirish", callback_data="admin:clear")
+        InlineKeyboardButton(text="🗑 Savollarni o‘chirish", callback_data="admin:clear")
     )
     builder.adjust(1)
     return builder.as_markup()
@@ -95,7 +95,7 @@ def back_button(callback_data: str = "admin:menu"):
 # =========================================================
 
 
-@router.message(F.text == "📄 Testlar Bo'limi", IsAdmin(admin_ids=ADMINS))
+@router.message(F.text == "📄 Testlar Bo‘limi", IsAdmin(admin_ids=ADMINS))
 async def admin_panel(message: Message):
     await message.answer(
         "⚙️ <b>Test panel</b>\n\nNimani qilmoqchisiz?",
@@ -125,14 +125,14 @@ async def create_test_prompt(callback: CallbackQuery):
     await callback.message.edit_text(
         "📝 <b>Yangi test yaratish</b>\n\n"
         "Test nomini yuboring.\n"
-        "Masalan: <code>O'tkan Kunlar — Adabiyot Testi</code>",
+        "Masalan: <code>o‘tkan Kunlar — Adabiyot Testi</code>",
         parse_mode="HTML",
         reply_markup=back_button(),
     )
     await callback.answer()
 
 
-# ← WaitingTestTitle filteri: FAQAT _pending_upload[user_id] == -1 bo'lganda ishlaydi
+# ← WaitingTestTitle filteri: FAQAT _pending_upload[user_id] == -1 bo‘lganda ishlaydi
 @router.message(F.text, WaitingTestTitle(), IsAdmin(admin_ids=ADMINS))
 async def handle_test_title(message: Message):
     title = message.text.strip()
@@ -154,7 +154,7 @@ async def handle_test_title(message: Message):
 
 
 # =========================================================
-# TESTLAR RO'YXATI
+# TESTLAR Ro‘YXATI
 # =========================================================
 
 
@@ -164,13 +164,13 @@ async def list_tests(callback: CallbackQuery):
 
     if not tests:
         await callback.message.edit_text(
-            "📭 Hech qanday test yo'q.", reply_markup=back_button()
+            "📭 Hech qanday test yo‘q.", reply_markup=back_button()
         )
         await callback.answer()
         return
 
     async with session_maker() as session:
-        lines = ["📋 <b>Testlar ro'yxati:</b>\n"]
+        lines = ["📋 <b>Testlar ro‘yxati:</b>\n"]
         for t in tests:
             q_count = await session.scalar(
                 select(func.count(Question.id)).where(
@@ -233,9 +233,9 @@ async def upload_test_selected(callback: CallbackQuery):
         "<b>Ustunlar:</b>\n"
         "• <code>question</code> — savol matni\n"
         "• <code>option_a / b / c / d</code> — variantlar\n"
-        "• <code>correct</code> — to'g'ri javob (A/B/C/D)\n"
+        "• <code>correct</code> — to‘g'ri javob (A/B/C/D)\n"
         "• <code>difficulty</code> — qiyinlik (-1.5, 0.0, 2.3...)\n\n"
-        "⚠️ 1-qator sarlavha bo'lishi shart.",
+        "⚠️ 1-qator sarlavha bo‘lishi shart.",
         parse_mode="HTML",
         reply_markup=back_button("admin:upload"),
     )
@@ -285,7 +285,7 @@ async def handle_excel_upload(message: Message, bot: Bot):
         ws = wb.active
     except Exception:
         await status_msg.edit_text(
-            "❌ Faylni o'qib bo'lmadi. Buzilgan bo'lishi mumkin."
+            "❌ Faylni o‘qib bo‘lmadi. Buzilgan bo‘lishi mumkin."
         )
         return
 
@@ -324,9 +324,9 @@ async def handle_excel_upload(message: Message, bot: Bot):
 
         row_errors = []
         if not q_text:
-            row_errors.append("savol bo'sh")
+            row_errors.append("savol bo‘sh")
         if not all([opt_a, opt_b, opt_c, opt_d]):
-            row_errors.append("variant bo'sh")
+            row_errors.append("variant bo‘sh")
         if correct not in VALID_ANSWERS:
             row_errors.append(f"correct='{correct}'")
         try:
@@ -376,7 +376,7 @@ async def handle_excel_upload(message: Message, bot: Bot):
         f"📦 Testdagi jami faol savollar: {total}\n"
     )
     if errors:
-        text += f"\n⚠️ {len(errors)} ta qator o'tkazib yuborildi:\n" + "\n".join(
+        text += f"\n⚠️ {len(errors)} ta qator o‘tkazib yuborildi:\n" + "\n".join(
             errors[:5]
         )
         if len(errors) > 5:
@@ -424,7 +424,7 @@ async def show_stat(callback: CallbackQuery):
 
 
 # =========================================================
-# SAVOLLARNI O'CHIRISH
+# SAVOLLARNI o‘CHIRISH
 # =========================================================
 
 
@@ -434,13 +434,13 @@ async def clear_select_test(callback: CallbackQuery):
 
     if not tests:
         await callback.message.edit_text(
-            "📭 Hech qanday test yo'q.", reply_markup=back_button()
+            "📭 Hech qanday test yo‘q.", reply_markup=back_button()
         )
         await callback.answer()
         return
 
     await callback.message.edit_text(
-        "🗑 <b>Savollarni o'chirish</b>\n\nQaysi testni tozalaysiz?",
+        "🗑 <b>Savollarni o‘chirish</b>\n\nQaysi testni tozalaysiz?",
         parse_mode="HTML",
         reply_markup=tests_inline(tests, "clear"),
     )
@@ -464,7 +464,7 @@ async def clear_test_selected(callback: CallbackQuery):
     builder = InlineKeyboardBuilder()
     builder.add(
         InlineKeyboardButton(
-            text="✅ Ha, o'chirish", callback_data=f"clear_ok:{test_id}"
+            text="✅ Ha, o‘chirish", callback_data=f"clear_ok:{test_id}"
         )
     )
     builder.add(
@@ -474,7 +474,7 @@ async def clear_test_selected(callback: CallbackQuery):
 
     await callback.message.edit_text(
         f"⚠️ <b>{test.title}</b>\n\n"
-        f"<b>{count} ta savol</b> o'chiriladi. Ishonchingiz komilmi?",
+        f"<b>{count} ta savol</b> o‘chiriladi. Ishonchingiz komilmi?",
         parse_mode="HTML",
         reply_markup=builder.as_markup(),
     )
@@ -492,7 +492,7 @@ async def clear_confirmed(callback: CallbackQuery):
         await session.commit()
 
     await callback.message.edit_text(
-        f"🗑 <b>{test.title}</b> — barcha savollar o'chirildi.",
+        f"🗑 <b>{test.title}</b> — barcha savollar o‘chirildi.",
         parse_mode="HTML",
         reply_markup=test_main_keyboard(),
     )
