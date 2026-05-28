@@ -17,10 +17,14 @@ PRIZES_TEXT = (
 )
 
 
-@router.message(F.text == "🎁 Sovg‘alar")
+@router.message(F.text == "🎁 Sovg'alar")
 async def prizes_handler(message: Message):
-    await message.answer_photo(
-        photo=PRIZES_PHOTO_URL,
-        caption=PRIZES_TEXT,
-        parse_mode="HTML",
-    )
+    try:
+        await message.answer_photo(
+            photo=PRIZES_PHOTO_URL,
+            caption=PRIZES_TEXT,
+            parse_mode="HTML",
+        )
+    except Exception:
+        # Rasm yuklanmasa — faqat matn yuboradi
+        await message.answer(PRIZES_TEXT, parse_mode="HTML")
