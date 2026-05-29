@@ -1,11 +1,5 @@
 # app/handlers/users/menu.py
 
-"""Handlers for main menu buttons.
-
-This module provides simple placeholder responses for the main menu
-buttons defined in ``app.keyboards.reply.main_menu_keyboard``.
-"""
-
 from urllib.parse import quote
 from aiogram import Router, F
 from database.database import session_maker
@@ -18,141 +12,132 @@ from aiogram.types import (
     InlineQueryResultPhoto,
     Message,
 )
-from database.models import ContestType
+from database.models import ContestType, DirectionType
 from main import bot
-
-share_keyboard = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [
-            InlineKeyboardButton(
-                text="📤 Ulashish",
-                switch_inline_query=(
-                    "📚 “Yosh Kitobchi — 2026 yoz” loyihasiga qo‘shiling!\n\n"
-                    "🏆 Kitobxonlik tanlovlari\n"
-                    "🎯 Bonus ballar\n"
-                    "🔥 Faol targ‘ibotchilar uchun sovg‘alar"
-                ),
-            )
-        ]
-    ]
-)
 
 router = Router()
 
+PROMO_IMAGE = "https://www.yoshkitobchi.uz/media/propaganda.png"
 
-# @router.message(F.text == "📄 Test")
-# async def test_handler(message: Message) -> None:
-#     """Handle the "Test" button.
+DIRECTION_LABELS = {
+    DirectionType.AGE_10_14: "10-14 yosh toifasi",
+    DirectionType.AGE_15_19: "15-19 yosh toifasi",
+    DirectionType.AGE_20_30: "20-30 yosh toifasi",
+}
 
-#     Currently a placeholder – you can replace the text with the real implementation.
-#     """
-#     await message.answer("🧪 Test bo‘limi hali ishlab chiqilmoqda.")
+MEDALS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
 
+
+# =========================================================
+# REYTING — faqat ro'yxatdan o'tganlar
+# =========================================================
 
 @router.message(F.text == "📊 Reyting")
 async def rating_handler(message: Message) -> None:
-    """Handle the "Reyting" button.
-
-    Shows the user's ranking and top users.
-    """
     user_id = message.from_user.id
+
     async with session_maker() as session:
-        user_service = UserService(session)
-        user = await user_service.get_user(user_id)
+        service = UserService(session)
+        user = await service.get_user(user_id)
+
         if not user:
-            await message.answer("📄 Profil topilmadi. Iltimos, ro‘yxatdan o‘ting.")
+            return await message.answer("📄 Profil topilmadi. Iltimos, ro'yxatdan o'ting.")
+
+        top_users = await service.get_top_users(limit=10)
+
+        # Foydalanuvchi ro'yxatdan o'tgan bo'lsa, uning reytingini ko'rsatamiz
+        if user.is_registered:
+            rank = await service.get_user_rank(user_id)
+            user_rank_line = f"\n📊 <b>Sizning reytingingiz:</b> #{rank} — {user.total_score} ball"
         else:
-            rank = await user_service.get_user_rank(user_id)
-            top_users = await user_service.get_top_users(limit=10)
-            lines = [
-                f"🏆 <b>Umumiy reytinging</b>",
-                "",
-                "🔝 <b>Top 10 foydalanuvchilar</b>:",
-            ]
-            for idx, u in enumerate(top_users, start=1):
-                name = u.full_name or f"ID {u.user_id}"
-                lines.append(f"{idx}. {name} — {u.total_score} ball")
+            user_rank_line = "\n⚠️ <i>Reytingda ko'rinish uchun ro'yxatdan o'ting.</i>"
 
-            # Append user's ranking after the top list
-            lines.append("")
-            lines.append(f"📊 <b>Sizning reytingingiz:</b> {user.total_score} #{rank}")
-            rating_text = "\n".join(lines)
-            await message.answer(rating_text, parse_mode="HTML")
+    lines = ["🏆 <b>Top 10 — Eng faol ishtirokchilar</b>\n"]
 
+    for idx, u in enumerate(top_users):
+        medal = MEDALS[idx] if idx < len(MEDALS) else f"{idx + 1}."
+        name = u.full_name or f"Foydalanuvchi #{u.user_id}"
+        lines.append(f"{medal} {name} — {u.total_score} ball")
+
+    lines.append(user_rank_line)
+    await message.answer("\n".join(lines), parse_mode="HTML")
+
+
+# =========================================================
+# PROFIL
+# =========================================================
 
 @router.message(F.text == "👤 Profil")
 async def profile_handler(message: Message) -> None:
-    """Handle the "Profil" button.
-
-    Shows the user's profile information from the database.
-    """
     user_id = message.from_user.id
-    # Open a DB session and fetch user data
+
     async with session_maker() as session:
-        user_service = UserService(session)
-        user = await user_service.get_user(user_id)
+        service = UserService(session)
+        user = await service.get_user(user_id)
+
         if not user:
-            await message.answer("📄 Profil topilmadi. Iltimos, ro‘yxatdan o‘ting.")
-            return
+            return await message.answer("📄 Profil topilmadi. Iltimos, ro'yxatdan o'ting.")
 
-        # Contest and direction display
-        contest_labels = {
-            ContestType.YOSH_KITOBXON_2026: "“Yosh kitobxon” tanlovi 2026",
-        }
-        contest = contest_labels.get(user.contest, "Yo‘q")
+        referrals_total = await service.get_referrals_count(user_id)
+        referrals_registered = await service.get_registered_referrals_count(user_id)
+        bot_username = (await bot.me()).username
+        referral_link = await service.get_referral_link(user_id, bot_username)
 
-        profile_text = (
-            f"<b>Sizning ma‘lumotlaringiz:</b>\n\n"
-            f"<b>ID:</b> <code>{user.user_id}</code>\n"
-            f"<b>F.I.Sh.:</b> {user.full_name or 'N/A'}\n"
-            f"<b>Yashash joyi:</b> {user.region or ''}, {user.district or ''}, {user.neighborhood or ''}\n\n"
-            f"<b>Telefon:</b> {user.phone_number or 'N/A'}\n"
-            f"<b>Tanlov:</b> {contest}\n"
-            f"<b>Umumiy ball:</b> {user.total_score}"
-        )
-        await message.answer(profile_text, parse_mode="HTML")
+    contest_labels = {
+        ContestType.YOSH_KITOBXON_2026: ""Yosh kitobxon" tanlovi 2026",
+    }
+    contest = contest_labels.get(user.contest, "—")
+    direction = DIRECTION_LABELS.get(user.direction, "—")
+
+    profile_text = (
+        "<b>👤 Sizning profilingiz</b>\n\n"
+        f"<b>ID:</b> <code>{user.user_id}</code>\n"
+        f"<b>F.I.Sh.:</b> {user.full_name or '—'}\n"
+        f"<b>Tug'ilgan sana:</b> {user.birth_date or '—'}\n"
+        f"<b>Yashash joyi:</b> {user.region or ''}, {user.district or ''}, {user.neighborhood or ''}\n"
+        f"<b>Ish/o'qish joyi:</b> {user.workplace or '—'}\n"
+        f"<b>Telefon:</b> {user.phone_number or '—'}\n\n"
+        f"<b>Tanlov:</b> {contest}\n"
+        f"<b>Yo'nalish:</b> {direction}\n\n"
+        f"<b>🏆 Umumiy ball:</b> {user.total_score}\n"
+        f"  ├ Test ballari: {user.test_score}\n"
+        f"  └ Referal ballari: {user.referral_score}\n\n"
+        f"<b>👥 Taklif qilganlar:</b> {referrals_total} ta kishi\n"
+        f"  └ Ro'yxatdan o'tganlar: {referrals_registered} ta (ball berilgan)\n\n"
+        f"<b>🔗 Sizning havolangiz:</b>\n<code>{referral_link}</code>"
+    )
+
+    await message.answer(profile_text, parse_mode="HTML")
 
 
 # =========================================================
-# TARG‘IBOT BO‘LIMI
+# TARG'IBOT BO'LIMI
 # =========================================================
-PROMO_IMAGE = "https://www.yoshkitobchi.uz/media/propaganda.png"
 
-
-@router.message(F.text == "🗞 Targ‘ibot")
+@router.message(F.text == "🗞 Targ'ibot")
 async def advert_handler(message: Message) -> None:
-    """Handle the 'Targ‘ibot' button."""
-
     bot_username = (await bot.me()).username
 
     async with session_maker() as session:
-        user_service = UserService(session)
-
-        referral_link = await user_service.get_referral_link(
+        service = UserService(session)
+        referral_link = await service.get_referral_link(
             user_id=message.from_user.id,
             username=bot_username,
         )
-
-    share_text = (
-        "📚 “Yosh Kitobchi — 2026 yoz” loyihasiga qo‘shiling!\n\n"
-        "🏆 Kitobxonlik tanlovlari\n"
-        "🔥 Eng faol targ‘ibotchilar uchun sovg‘alar\n"
-        "📖 Bilimingizni sinab ko‘ring va reytingda yuqorilang.\n\n"
-        f"🔗 {referral_link}"
-    )
+        referrals_total = await service.get_referrals_count(message.from_user.id)
+        referrals_registered = await service.get_registered_referrals_count(message.from_user.id)
 
     share_url = (
-        f"https://t.me/share/url?url={quote(referral_link)}&text={quote(share_text)}"
+        f"https://t.me/share/url?url={quote(referral_link)}"
+        f"&text={quote('📚 "Yosh Kitobchi — 2026 yoz" loyihasiga qo\'shiling! 🏆')}"
     )
-
-    inline_share = f"https://t.me/{bot_username}?start={message.from_user.id}"
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="📤 Do‘stlarga ulashish",
-                    switch_inline_query=inline_share,
+                    text="📤 Do'stlarga ulashish",
+                    switch_inline_query=referral_link,
                 )
             ],
             [
@@ -164,22 +149,20 @@ async def advert_handler(message: Message) -> None:
         ]
     )
 
-    caption = f"""
-🗞 <b>Targ‘ibot bo‘limi</b>
-
-📚 “Yosh Kitobchi — 2026 yoz” loyihasiga
-do‘stlaringizni taklif qiling.
-
-🏆 Har bir ro‘yxatdan o‘tgan foydalanuvchi
-uchun bonus ball beriladi.
-
-🔗 <b>Sizning maxsus havolangiz:</b>
-
-<code>{referral_link}</code>
-
-🔥 Eng faol targ‘ibotchilar
-loyiha yakunida taqdirlanadi.
-"""
+    caption = (
+        "🗞 <b>Targ'ibot bo'limi</b>\n\n"
+        "📚 "Yosh Kitobchi — 2026 yoz" loyihasiga\n"
+        "do'stlaringizni taklif qiling.\n\n"
+        "🏆 <b>Har bir ro'yxatdan o'tgan do'st</b>\n"
+        "   uchun <b>+1 ball</b> beriladi.\n\n"
+        f"👥 <b>Taklif qilganlar:</b> {referrals_total} ta\n"
+        f"✅ <b>Ro'yxatdan o'tganlar:</b> {referrals_registered} ta\n"
+        f"🎯 <b>Referal ballari:</b> {referrals_registered} ball\n\n"
+        f"🔗 <b>Sizning maxsus havolangiz:</b>\n\n"
+        f"<code>{referral_link}</code>\n\n"
+        "🔥 Eng faol targ'ibotchilar\n"
+        "loyiha yakunida taqdirlanadi."
+    )
 
     await message.answer_photo(
         photo=PROMO_IMAGE,
@@ -193,27 +176,19 @@ loyiha yakunida taqdirlanadi.
 # INLINE SHARE
 # =========================================================
 
-
 @router.inline_query()
-async def inline_share_handler(
-    inline_query: InlineQuery,
-) -> None:
-    """
-    Inline share system.
-    """
-
+async def inline_share_handler(inline_query: InlineQuery) -> None:
     query = inline_query.query
-
     referral_link = "https://t.me/yoshkitobchibot"
 
     if query.startswith("https://t.me/"):
         referral_link = query
 
     text = (
-        "📚 “Yosh Kitobchi — 2026 yoz” loyihasiga qo‘shiling!\n\n"
+        "📚 "Yosh Kitobchi — 2026 yoz" loyihasiga qo'shiling!\n\n"
         "🏆 Kitobxonlik tanlovlari\n"
-        "🔥 Eng faol targ‘ibotchilar uchun sovg‘alar\n"
-        "📖 Bilimingizni sinab ko‘ring va reytingda yuqorilang.\n\n"
+        "🔥 Eng faol targ'ibotchilar uchun sovg'alar\n"
+        "📖 Bilimingizni sinab ko'ring va reytingda yuqorilang.\n\n"
         f"🔗 {referral_link}"
     )
 
@@ -228,7 +203,7 @@ async def inline_share_handler(
                 inline_keyboard=[
                     [
                         InlineKeyboardButton(
-                            text="📚 Loyihaga qo‘shilish",
+                            text="📚 Loyihaga qo'shilish",
                             url=referral_link,
                         )
                     ]
@@ -237,8 +212,4 @@ async def inline_share_handler(
         )
     ]
 
-    await bot.answer_inline_query(
-        inline_query.id,
-        results=results,
-        cache_time=1,
-    )
+    await bot.answer_inline_query(inline_query.id, results=results, cache_time=1)

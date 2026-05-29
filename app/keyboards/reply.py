@@ -200,7 +200,10 @@ def admin_menu() -> ReplyKeyboardMarkup:
             ],
             [
                 KeyboardButton(text="🔐 Kanallar"),
-                KeyboardButton(text="📋 Testlar ro‘yxati")
+                KeyboardButton(text="📋 Testlar ro‘yxati"),
+            ],
+            [
+                KeyboardButton(text="👥 Foydalanuvchilar"),
             ],
         ],
         resize_keyboard=True,

@@ -22,16 +22,14 @@ class UserService:
         return result.scalar_one_or_none()
 
     # =====================================================
-    # GET ALL
+    # GET ALL USERS
     # =====================================================
 
-    async def get_all_users(
-        session: AsyncSession, active_only: bool = False
-    ) -> list[User]:
-        query = select(User)
-        if active_only:
+    async def get_all_users(self, registered_only: bool = False) -> list[User]:
+        query = select(User).order_by(desc(User.created_at))
+        if registered_only:
             query = query.where(User.is_registered.is_(True))
-        result = await session.execute(query)
+        result = await self.session.execute(query)
         return result.scalars().all()
 
     # =====================================================
@@ -45,13 +43,6 @@ class UserService:
 
         user = User(user_id=user_id, referred_by=referred_by)
         self.session.add(user)
-
-        if referred_by and referred_by != user_id:
-            referrer = await self.get_user(referred_by)
-            if referrer:
-                referrer.referral_score += 1
-                referrer.total_score += 1
-
         await self.session.commit()
         return user
 
@@ -67,6 +58,7 @@ class UserService:
 
     # =====================================================
     # COMPLETE REGISTRATION
+    # — Ro'yxatdan o'tish tugaganda referal ball beriladi
     # =====================================================
 
     async def complete_registration(
@@ -82,6 +74,17 @@ class UserService:
         contest: ContestType,
         direction: DirectionType,
     ):
+        user = await self.get_user(user_id)
+        if not user:
+            return
+
+        # Foydalanuvchi oldin ro'yxatdan o'tmagan bo'lsa referal balini beramiz
+        if not user.is_registered and user.referred_by:
+            referrer = await self.get_user(user.referred_by)
+            if referrer and referrer.user_id != user_id:
+                referrer.referral_score += 1
+                referrer.total_score += 1
+
         await self.update_user(
             user_id=user_id,
             full_name=full_name,
@@ -109,7 +112,7 @@ class UserService:
         await self.session.commit()
 
     # =====================================================
-    # ADD REFERRAL SCORE
+    # ADD REFERRAL SCORE (manual, admin uchun)
     # =====================================================
 
     async def add_referral_score(self, user_id: int, score: int = 1):
@@ -121,14 +124,20 @@ class UserService:
         await self.session.commit()
 
     # =====================================================
-    # GET USER RANK
+    # GET USER RANK — faqat ro'yxatdan o'tganlar orasida
     # =====================================================
 
-    async def get_user_rank(self, user_id: int):
-        subquery = select(
-            User.user_id,
-            func.rank().over(order_by=desc(User.total_score)).label("rank"),
-        ).subquery()
+    async def get_user_rank(self, user_id: int) -> int | str:
+        subquery = (
+            select(
+                User.user_id,
+                func.rank()
+                .over(order_by=desc(User.total_score))
+                .label("rank"),
+            )
+            .where(User.is_registered.is_(True))
+            .subquery()
+        )
 
         result = await self.session.execute(
             select(subquery.c.rank).where(subquery.c.user_id == user_id)
@@ -136,12 +145,15 @@ class UserService:
         return result.scalar() or "N/A"
 
     # =====================================================
-    # GET TOP USERS
+    # GET TOP USERS — faqat ro'yxatdan o'tganlar
     # =====================================================
 
-    async def get_top_users(self, limit: int = 10):
+    async def get_top_users(self, limit: int = 10) -> list[User]:
         result = await self.session.execute(
-            select(User).order_by(desc(User.total_score)).limit(limit)
+            select(User)
+            .where(User.is_registered.is_(True))
+            .order_by(desc(User.total_score))
+            .limit(limit)
         )
         return result.scalars().all()
 
@@ -149,19 +161,33 @@ class UserService:
     # GET USERS COUNT
     # =====================================================
 
-    async def get_users_count(self):
+    async def get_users_count(self) -> int:
         result = await self.session.execute(select(func.count(User.id)))
-        return result.scalar()
+        return result.scalar() or 0
 
     # =====================================================
-    # GET REFERRALS COUNT
+    # GET REFERRALS COUNT — nechta odam bu user orqali kelgan
     # =====================================================
 
-    async def get_referrals_count(self, user_id: int):
+    async def get_referrals_count(self, user_id: int) -> int:
         result = await self.session.execute(
             select(func.count(User.id)).where(User.referred_by == user_id)
         )
-        return result.scalar()
+        return result.scalar() or 0
+
+    # =====================================================
+    # GET REGISTERED REFERRALS COUNT
+    # — ro'yxatdan o'tgan referallar (ball bergan)
+    # =====================================================
+
+    async def get_registered_referrals_count(self, user_id: int) -> int:
+        result = await self.session.execute(
+            select(func.count(User.id)).where(
+                User.referred_by == user_id,
+                User.is_registered.is_(True),
+            )
+        )
+        return result.scalar() or 0
 
     # =====================================================
     # GET REFERRAL LINK
@@ -170,6 +196,28 @@ class UserService:
     async def get_referral_link(self, user_id: int, username: str | None = None) -> str:
         bot_username = username or "yoshkitobchibot"
         return f"https://t.me/{bot_username}?start={user_id}"
+
+    # =====================================================
+    # SEARCH USERS — admin uchun qidiruv
+    # =====================================================
+
+    async def search_users(self, query: str) -> list[User]:
+        """
+        Ism, telefon yoki user_id bo'yicha qidiradi.
+        """
+        result = await self.session.execute(
+            select(User).where(
+                User.full_name.ilike(f"%{query}%")
+                | User.phone_number.ilike(f"%{query}%")
+            )
+        )
+        return result.scalars().all()
+
+    async def get_user_by_phone(self, phone: str) -> User | None:
+        result = await self.session.execute(
+            select(User).where(User.phone_number == phone)
+        )
+        return result.scalar_one_or_none()
 
     # =====================================================
     # DELETE USER

@@ -4,40 +4,33 @@ import random
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from sqlalchemy import select
-
-from sqlalchemy import func
+from sqlalchemy import select, func
 
 from database.database import session_maker
 from database.models import TestSession, Test, Question
-from database.services.test_service import TestService, TEST_DURATION_SECONDS
+from database.services.test_service import TestService, SECONDS_PER_QUESTION
 
 router = Router()
 
 
 # =========================================================
-# KLAVIATURA — TESTLAR Ro‘YXATI
+# KLAVIATURA — TESTLAR RO'YXATI
 # =========================================================
-
 
 EMOJIS = ["📗", "📘", "📙", "📕"]
 
 
-def tests_list_keyboard(tests: list[Test]):
+def tests_list_keyboard(tests: list):
     builder = InlineKeyboardBuilder()
-
     for t in tests:
         emoji = random.choice(EMOJIS)
-
         builder.add(
             InlineKeyboardButton(
                 text=f"{emoji} {t.title}",
                 callback_data=f"pick_test:{t.id}",
             )
         )
-
     builder.adjust(1)
-
     return builder.as_markup()
 
 
@@ -58,15 +51,29 @@ def start_test_keyboard(test_id: int):
 
 def question_keyboard(question_id: int):
     builder = InlineKeyboardBuilder()
-    for opt, label in [("A", "A"), ("B", "B"), ("C", "C"), ("D", "D")]:
+    for opt in ["A", "B", "C", "D"]:
         builder.add(
             InlineKeyboardButton(
-                text=label,
+                text=opt,
                 callback_data=f"ans:{question_id}:{opt}",
             )
         )
     builder.adjust(4)
     return builder.as_markup()
+
+
+# =========================================================
+# YORDAMCHI — vaqtni chiroyli ko'rsatish
+# =========================================================
+
+
+def format_duration(seconds: int) -> str:
+    minutes = seconds // 60
+    if minutes >= 60:
+        hours = minutes // 60
+        mins = minutes % 60
+        return f"{hours} soat {mins} daqiqa" if mins else f"{hours} soat"
+    return f"{minutes} daqiqa"
 
 
 # =========================================================
@@ -121,16 +128,16 @@ def result_text(result: dict, expired: bool = False) -> str:
     )
     return (
         f"{header}"
-        f"✅ To‘g‘ri javoblar: <b>{result['correct']}/{result['total']}</b>\n"
+        f"✅ To'g'ri javoblar: <b>{result['correct']}/{result['total']}</b>\n"
         f"📝 Javob berildi: <b>{result['answered']}</b> ta\n"
         f"📊 Rasch ball: <b>{result['score']}</b> / 100\n"
         f"📈 Theta (θ): {result['theta']}\n\n"
-        f"🏆 Ball reytingga qo‘shildi!"
+        f"🏆 Ball reytingga qo'shildi!"
     )
 
 
 # =========================================================
-# 📄 Test tugmasi — testlar ro‘yxatini ko‘rsatish
+# 📄 Test tugmasi — testlar ro'yxatini ko'rsatish
 # =========================================================
 
 
@@ -144,12 +151,12 @@ async def test_list_show(message: Message):
 
     if not tests:
         await message.answer(
-            "⚠️ Hozircha hech qanday test mavjud emas. Keyinroq urinib ko‘ring."
+            "⚠️ Hozircha hech qanday test mavjud emas. Keyinroq urinib ko'ring."
         )
         return
 
     await message.answer(
-        "📚 <b>Testlar ro‘yxati</b>\n\nBitta testni tanlang:",
+        "📚 <b>Testlar ro'yxati</b>\n\nBitta testni tanlang:",
         parse_mode="HTML",
         reply_markup=tests_list_keyboard(tests),
     )
@@ -179,10 +186,15 @@ async def pick_test(callback: CallbackQuery):
             )
         )
 
+    # Savol soniga qarab vaqtni hisoblash
+    actual_count = min(q_count, 40)
+    duration_sec = actual_count * SECONDS_PER_QUESTION
+    duration_str = format_duration(duration_sec)
+
     await callback.message.edit_text(
         f"📋 <b>{test.title}</b>\n\n"
-        f"📝 Savollar soni: <b>{q_count} ta</b>\n"
-        f"🕐 Vaqt: <b>1 soat</b>\n\n"
+        f"📝 Savollar soni: <b>{actual_count} ta</b>\n"
+        f"🕐 Vaqt: <b>{duration_str}</b>\n\n"
         f"Testni boshlashga tayyormisiz?",
         parse_mode="HTML",
         reply_markup=start_test_keyboard(test_id),
@@ -191,7 +203,7 @@ async def pick_test(callback: CallbackQuery):
 
 
 # =========================================================
-# ORQAGA — testlar ro‘yxatiga qaytish
+# ORQAGA — testlar ro'yxatiga qaytish
 # =========================================================
 
 
@@ -204,7 +216,7 @@ async def back_to_tests(callback: CallbackQuery):
         tests = result.scalars().all()
 
     await callback.message.edit_text(
-        "📚 <b>Testlar ro‘yxati</b>\n\nBitta testni tanlang:",
+        "📚 <b>Testlar ro'yxati</b>\n\nBitta testni tanlang:",
         parse_mode="HTML",
         reply_markup=tests_list_keyboard(tests),
     )
@@ -241,29 +253,32 @@ async def start_test(callback: CallbackQuery):
 
         if status == "no_questions":
             await callback.message.edit_text(
-                "⚠️ Bu testda hozircha savollar yo‘q. Keyinroq urinib ko‘ring."
+                "⚠️ Bu testda hozircha savollar yo'q. Keyinroq urinib ko'ring."
             )
             await callback.answer()
             return
 
+        total_q = len(session_obj.question_ids)
+        duration_str = format_duration(session_obj.duration_seconds)
+
         if status == "continued":
             answered = len(session_obj.answers)
             remaining = service.remaining_seconds(session_obj)
-            minutes, seconds = divmod(remaining, 60)
+            r_min, r_sec = divmod(remaining, 60)
             await callback.message.edit_text(
                 f"▶️ <b>Test davom ettirilmoqda.</b>\n\n"
-                f"✅ Javob berildi: {answered}/40\n"
-                f"🕐 Qolgan vaqt: <b>{minutes:02d}:{seconds:02d}</b>",
+                f"✅ Javob berildi: <b>{answered}/{total_q}</b>\n"
+                f"🕐 Qolgan vaqt: <b>{r_min:02d}:{r_sec:02d}</b>",
                 parse_mode="HTML",
             )
 
         if status == "new":
             await callback.message.edit_text(
-                "🚀 <b>Test boshlandi!</b>\n\n"
-                "📋 Jami: <b>40 ta savol</b>\n"
-                "🕐 Vaqt: <b>1 soat</b>\n\n"
-                "Har bir savolga A, B, C yoki D tugmasini bosib javob bering.\n"
-                "⚠️ Vaqt tugagach test avtomatik yakunlanadi.",
+                f"🚀 <b>Test boshlandi!</b>\n\n"
+                f"📋 Jami: <b>{total_q} ta savol</b>\n"
+                f"🕐 Vaqt: <b>{duration_str}</b>\n\n"
+                f"Har bir savolga A, B, C yoki D tugmasini bosib javob bering.\n"
+                f"⚠️ Vaqt tugagach test avtomatik yakunlanadi.",
                 parse_mode="HTML",
             )
 
@@ -281,11 +296,7 @@ async def start_test(callback: CallbackQuery):
 
 
 async def auto_finish_timer(user_id: int, chat_id: int, bot, test_id: int):
-    await asyncio.sleep(TEST_DURATION_SECONDS)
-
     async with session_maker() as session:
-        service = TestService(session)
-
         result = await session.execute(
             select(TestSession).where(
                 TestSession.user_id == user_id,
@@ -294,12 +305,26 @@ async def auto_finish_timer(user_id: int, chat_id: int, bot, test_id: int):
             )
         )
         session_obj = result.scalar_one_or_none()
-
         if not session_obj:
-            return  # Allaqachon tugallangan
+            return
+        wait = session_obj.duration_seconds
+
+    await asyncio.sleep(wait)
+
+    async with session_maker() as session:
+        service = TestService(session)
+        result = await session.execute(
+            select(TestSession).where(
+                TestSession.user_id == user_id,
+                TestSession.test_id == test_id,
+                TestSession.is_completed.is_(False),
+            )
+        )
+        session_obj = result.scalar_one_or_none()
+        if not session_obj:
+            return
 
         res = await service.finish_session(session_obj, user_id)
-
         await bot.send_message(
             chat_id=chat_id,
             text=result_text(res, expired=True),
@@ -308,7 +333,7 @@ async def auto_finish_timer(user_id: int, chat_id: int, bot, test_id: int):
 
 
 # =========================================================
-# JAVOB HANDLER — ans:question_id:OPTION
+# JAVOB HANDLER
 # =========================================================
 
 

@@ -66,103 +66,38 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    # Telegram ID
     user_id: Mapped[int] = mapped_column(
         BigInteger,
         unique=True,
         nullable=False,
         index=True,
     )
+    full_name: Mapped[str] = mapped_column(String(255), nullable=True)
+    birth_date: Mapped[date] = mapped_column(Date, nullable=True)
+    phone_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=True)
+    region: Mapped[str] = mapped_column(String(100), nullable=True)
+    district: Mapped[str] = mapped_column(String(100), nullable=True)
+    neighborhood: Mapped[str] = mapped_column(String(100), nullable=True)
+    workplace: Mapped[str] = mapped_column(String(255), nullable=True)
 
-    # Full Name
-    full_name: Mapped[str] = mapped_column(
-        String(255),
-        nullable=True,
-    )
-
-    # Birth Date
-    birth_date: Mapped[date] = mapped_column(
-        Date,
-        nullable=True,
-    )
-
-    # Phone Number
-    phone_number: Mapped[str] = mapped_column(
-        String(20),
-        unique=True,
-        nullable=True,
-    )
-
-    # Location
-    region: Mapped[str] = mapped_column(
-        String(100),
-        nullable=True,
-    )
-
-    district: Mapped[str] = mapped_column(
-        String(100),
-        nullable=True,
-    )
-
-    neighborhood: Mapped[str] = mapped_column(
-        String(100),
-        nullable=True,
-    )
-
-    # Work / Study
-    workplace: Mapped[str] = mapped_column(
-        String(255),
-        nullable=True,
-    )
-
-    # Contest
-    contest: Mapped[ContestType] = mapped_column(
-        SqlEnum(ContestType),
-        nullable=True,
-    )
-
-    # Direction
+    contest: Mapped[ContestType] = mapped_column(SqlEnum(ContestType), nullable=True)
     direction: Mapped[DirectionType] = mapped_column(
-        SqlEnum(DirectionType),
-        nullable=True,
+        SqlEnum(DirectionType), nullable=True
     )
 
-    # Scores
-    referral_score: Mapped[int] = mapped_column(
-        Integer,
-        default=0,
-    )
+    referral_score: Mapped[int] = mapped_column(Integer, default=0)
+    test_score: Mapped[int] = mapped_column(Integer, default=0)
+    total_score: Mapped[int] = mapped_column(Integer, default=0)
 
-    test_score: Mapped[int] = mapped_column(
-        Integer,
-        default=0,
-    )
-
-    total_score: Mapped[int] = mapped_column(
-        Integer,
-        default=0,
-    )
-
-    # Referral
     referred_by: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey("users.user_id"),
         nullable=True,
     )
 
-    # Admin
-    is_admin: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-    )
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_registered: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Registration Completed
-    is_registered: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-    )
-
-    # Created At
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(UTC),
@@ -229,12 +164,10 @@ class ChannelJoin(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.user_id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
     )
     channel_id: Mapped[int] = mapped_column(
-        ForeignKey("channels.channel_id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("channels.channel_id", ondelete="CASCADE"), nullable=False
     )
     is_joined: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -244,6 +177,11 @@ class ChannelJoin(Base):
 
     user: Mapped["User"] = relationship("User", back_populates="channel_joins")
     channel: Mapped["Channel"] = relationship("Channel", back_populates="joins")
+
+
+# =========================================================
+# AD
+# =========================================================
 
 
 class Ad(Base):
@@ -260,7 +198,7 @@ class Ad(Base):
 
 
 # =========================================================
-# TEST — Admin yaratgan test nomlari
+# TEST
 # =========================================================
 
 
@@ -274,7 +212,6 @@ class Test(Base):
         DateTime, default=lambda: datetime.now(UTC)
     )
 
-    # Relationships
     questions: Mapped[list["Question"]] = relationship(
         "Question", back_populates="test"
     )
@@ -284,7 +221,7 @@ class Test(Base):
 
 
 # =========================================================
-# QUESTION — Test savollari
+# QUESTION
 # =========================================================
 
 
@@ -292,12 +229,9 @@ class Question(Base):
     __tablename__ = "questions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-
-    # ← YANGI: qaysi testga tegishli
     test_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("tests.id"), nullable=False
     )
-
     text: Mapped[str] = mapped_column(Text, nullable=False)
     option_a: Mapped[str] = mapped_column(String(500), nullable=False)
     option_b: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -310,12 +244,11 @@ class Question(Base):
         DateTime, default=lambda: datetime.now(UTC)
     )
 
-    # Relationship
     test: Mapped["Test"] = relationship("Test", back_populates="questions")
 
 
 # =========================================================
-# TEST SESSION — Foydalanuvchi test sessiyasi
+# TEST SESSION
 # =========================================================
 
 
@@ -326,20 +259,20 @@ class TestSession(Base):
     user_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("users.user_id"), nullable=False, unique=True
     )
-
-    # ← YANGI: qaysi test sessiyasi
     test_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("tests.id"), nullable=False
     )
-
     question_ids: Mapped[list] = mapped_column(JSON, nullable=False)
     answers: Mapped[dict] = mapped_column(JSON, default=dict)
     rasch_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Savol soniga qarab dinamik hisoblangan vaqt (soniyada)
+    duration_seconds: Mapped[int] = mapped_column(Integer, default=3600)
+
     started_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC)
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    # Relationship
     test: Mapped["Test"] = relationship("Test", back_populates="sessions")

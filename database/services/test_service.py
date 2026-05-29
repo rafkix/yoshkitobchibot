@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import Question, TestSession
 from app.utils.rasch import rasch_ability, theta_to_score
 
-QUESTIONS_PER_SESSION = 40
-TEST_DURATION_SECONDS = 3600  # 1 soat
+QUESTIONS_PER_SESSION = 40  # maksimal savol soni
+SECONDS_PER_QUESTION = 90  # har bir savolga 1.5 daqiqa
 
 
 class TestService:
@@ -31,17 +31,16 @@ class TestService:
         if session_obj.is_completed:
             return False
         deadline = session_obj.started_at.replace(tzinfo=UTC) + timedelta(
-            seconds=TEST_DURATION_SECONDS
+            seconds=session_obj.duration_seconds
         )
         return datetime.now(UTC) >= deadline
 
     # ─── Qolgan vaqt (soniya) ──────────────────────────────────────────────
     def remaining_seconds(self, session_obj: TestSession) -> int:
         deadline = session_obj.started_at.replace(tzinfo=UTC) + timedelta(
-            seconds=TEST_DURATION_SECONDS
+            seconds=session_obj.duration_seconds
         )
-        remaining = (deadline - datetime.now(UTC)).total_seconds()
-        return max(0, int(remaining))
+        return max(0, int((deadline - datetime.now(UTC)).total_seconds()))
 
     # ─── Sessiya olish yoki yangi ochish ───────────────────────────────────
     async def get_or_create_session(
@@ -54,7 +53,7 @@ class TestService:
         if await self.has_completed(user_id, test_id):
             return None, "completed"
 
-        # Tugallanmagan sessiya bormi? (shu test uchun)
+        # Tugallanmagan sessiya bormi?
         result = await self.session.execute(
             select(TestSession).where(
                 TestSession.user_id == user_id,
@@ -79,16 +78,22 @@ class TestService:
         )
         all_ids = [row[0] for row in q_result.fetchall()]
 
-        if len(all_ids) < QUESTIONS_PER_SESSION:
+        if len(all_ids) == 0:
             return None, "no_questions"
 
-        chosen = random.sample(all_ids, QUESTIONS_PER_SESSION)
+        # Mavjud savollar soni maksimaldan kam bo'lsa, hammasini oladi
+        questions_count = min(QUESTIONS_PER_SESSION, len(all_ids))
+        chosen = random.sample(all_ids, questions_count)
+
+        # Vaqtni savol soniga qarab hisoblash
+        duration = questions_count * SECONDS_PER_QUESTION
 
         session_obj = TestSession(
             user_id=user_id,
             test_id=test_id,
             question_ids=chosen,
             answers={},
+            duration_seconds=duration,
             started_at=datetime.now(UTC),
         )
         self.session.add(session_obj)
@@ -144,8 +149,8 @@ class TestService:
         await self.session.commit()
 
         from database.services.user_service import UserService
-        user_service = UserService(self.session)
-        await user_service.add_test_score(user_id, score)
+
+        await UserService(self.session).add_test_score(user_id, score)
 
         return {
             "correct": correct_count,

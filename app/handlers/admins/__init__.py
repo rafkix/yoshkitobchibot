@@ -6,12 +6,10 @@ from .channels.delete_channel import router as delete_channel_router
 from .ads.send_ads import router as admin_ads_router
 from .ads.ads import router as ads
 from .ads.upload_questions import router as upload_questions_router
+from .users import router as users_router
 
 
 def setup(dp: Dispatcher):
-    """
-    Botning routerlarini ulash uchun setup funksiyasi.
-    """
     dp.include_routers(
         main_admin_router,
         channels,
@@ -20,4 +18,5 @@ def setup(dp: Dispatcher):
         admin_ads_router,
         ads,
         upload_questions_router,
+        users_router,
     )
