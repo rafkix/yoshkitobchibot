@@ -185,7 +185,7 @@ async def inline_share_handler(inline_query: InlineQuery) -> None:
         referral_link = query
 
     text = (
-        "“Yosh kitobchi” - 2026 yozloyihasiga qo‘shiling!\n\n"
+        "“Yosh kitobchi” - 2026 yoz loyihasiga qo‘shiling!\n\n"
         "🏆 Kitobxonlik tanlovlari\n"
         "🔥 Eng faol targ‘ibotchilar uchun sovg‘alar\n"
         "📖 Bilimingizni sinab ko‘ring va reytingda yuqorilang.\n\n"
