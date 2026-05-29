@@ -27,8 +27,7 @@ BATCH_DELAY = 1.0
 @router.callback_query(F.data == "admin_ads_send", IsAdmin(admin_ids=ADMINS))
 async def admin_ads_send_menu(callback: CallbackQuery):
     await callback.message.edit_text(
-        "Yuborish turini tanlang:",
-        reply_markup=admin_ads_send()
+        "Yuborish turini tanlang:", reply_markup=admin_ads_send()
     )
     await callback.answer()
 
@@ -38,7 +37,7 @@ async def admin_send_forward(callback: CallbackQuery, state: FSMContext):
     await state.set_state(SendAds.send_forward)
     await callback.message.edit_text(
         "📩 Reklama yuborish uchun xabarni FORWARD qiling.\n\n",
-        reply_markup=cancel_ads_keyboard()
+        reply_markup=cancel_ads_keyboard(),
     )
     await callback.answer()
 
@@ -47,8 +46,7 @@ async def admin_send_forward(callback: CallbackQuery, state: FSMContext):
 async def send_copy(callback: CallbackQuery, state: FSMContext):
     await state.set_state(SendCopy.send_copy)
     await callback.message.edit_text(
-        "📋 Reklama uchun xabar yuboring.\n\n",
-        reply_markup=cancel_ads_keyboard()
+        "📋 Reklama uchun xabar yuboring.\n\n", reply_markup=cancel_ads_keyboard()
     )
     await callback.answer()
 
@@ -68,16 +66,20 @@ async def cancel_ads_callback(callback: CallbackQuery, state: FSMContext):
 
     await state.clear()
 
-    await callback.message.edit_text("❌ Bekor qilindi.",reply_markup=admin_ads_send())
+    await callback.message.edit_text("❌ Bekor qilindi.", reply_markup=admin_ads_send())
     await callback.answer()
+
 
 async def fetch_active_users():
     async with session_maker() as session:
-        users = await UserService.get_all_users(session, active_only=True)
+        service = UserService(session)
+        users = await service.get_all_users()
         return users
 
 
-async def safe_forward(bot: Bot, user_id: int, source_message: Message) -> tuple[bool, str | None]:
+async def safe_forward(
+    bot: Bot, user_id: int, source_message: Message
+) -> tuple[bool, str | None]:
     try:
         await bot.forward_message(
             chat_id=user_id,
@@ -108,7 +110,9 @@ async def safe_forward(bot: Bot, user_id: int, source_message: Message) -> tuple
         return False, "unknown"
 
 
-async def safe_copy(bot: Bot, user_id: int, source_message: Message) -> tuple[bool, str | None]:
+async def safe_copy(
+    bot: Bot, user_id: int, source_message: Message
+) -> tuple[bool, str | None]:
     try:
         await bot.copy_message(
             chat_id=user_id,
@@ -195,7 +199,7 @@ async def run_broadcast(
 @router.message(
     F.forward_from | F.forward_from_chat,
     SendAds.send_forward,
-    IsAdmin(admin_ids=ADMINS)
+    IsAdmin(admin_ids=ADMINS),
 )
 async def send_ads_forward(message: Message, state: FSMContext, bot: Bot):
     await run_broadcast(
@@ -206,10 +210,7 @@ async def send_ads_forward(message: Message, state: FSMContext, bot: Bot):
     )
 
 
-@router.message(
-    SendCopy.send_copy,
-    IsAdmin(admin_ids=ADMINS)
-)
+@router.message(SendCopy.send_copy, IsAdmin(admin_ids=ADMINS))
 async def send_ads_copy(message: Message, state: FSMContext, bot: Bot):
     await run_broadcast(
         message=message,
