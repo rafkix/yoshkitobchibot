@@ -151,7 +151,7 @@ async def advert_handler(message: Message) -> None:
 
     caption = (
         "🗞 <b>Targ‘ibot bo‘limi</b>\n\n"
-        "📚 "Yosh Kitobchi — 2026 yoz" loyihasiga\n"
+        "“Yosh kitobchi” - 2026 yoz loyihasiga\n"
         "do‘stlaringizni taklif qiling.\n\n"
         "🏆 <b>Har bir ro‘yxatdan o‘tgan do‘st</b>\n"
         "   uchun <b>+1 ball</b> beriladi.\n\n"
@@ -185,7 +185,7 @@ async def inline_share_handler(inline_query: InlineQuery) -> None:
         referral_link = query
 
     text = (
-        "📚 "Yosh Kitobchi — 2026 yoz" loyihasiga qo‘shiling!\n\n"
+        "“Yosh kitobchi” - 2026 yozloyihasiga qo‘shiling!\n\n"
         "🏆 Kitobxonlik tanlovlari\n"
         "🔥 Eng faol targ‘ibotchilar uchun sovg‘alar\n"
         "📖 Bilimingizni sinab ko‘ring va reytingda yuqorilang.\n\n"
