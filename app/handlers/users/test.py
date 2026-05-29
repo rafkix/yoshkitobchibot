@@ -14,7 +14,7 @@ router = Router()
 
 
 # =========================================================
-# KLAVIATURA — TESTLAR RO'YXATI
+# KLAVIATURA — TESTLAR Ro‘YXATI
 # =========================================================
 
 EMOJIS = ["📗", "📘", "📙", "📕"]
@@ -63,7 +63,7 @@ def question_keyboard(question_id: int):
 
 
 # =========================================================
-# YORDAMCHI — vaqtni chiroyli ko'rsatish
+# YORDAMCHI — vaqtni chiroyli ko‘rsatish
 # =========================================================
 
 
@@ -128,16 +128,16 @@ def result_text(result: dict, expired: bool = False) -> str:
     )
     return (
         f"{header}"
-        f"✅ To'g'ri javoblar: <b>{result['correct']}/{result['total']}</b>\n"
+        f"✅ To‘g‘ri javoblar: <b>{result['correct']}/{result['total']}</b>\n"
         f"📝 Javob berildi: <b>{result['answered']}</b> ta\n"
         f"📊 Rasch ball: <b>{result['score']}</b> / 100\n"
         f"📈 Theta (θ): {result['theta']}\n\n"
-        f"🏆 Ball reytingga qo'shildi!"
+        f"🏆 Ball reytingga qo‘shildi!"
     )
 
 
 # =========================================================
-# 📄 Test tugmasi — testlar ro'yxatini ko'rsatish
+# 📄 Test tugmasi — testlar ro‘yxatini ko‘rsatish
 # =========================================================
 
 
@@ -151,12 +151,12 @@ async def test_list_show(message: Message):
 
     if not tests:
         await message.answer(
-            "⚠️ Hozircha hech qanday test mavjud emas. Keyinroq urinib ko'ring."
+            "⚠️ Hozircha hech qanday test mavjud emas. Keyinroq urinib ko‘ring."
         )
         return
 
     await message.answer(
-        "📚 <b>Testlar ro'yxati</b>\n\nBitta testni tanlang:",
+        "📚 <b>Testlar ro‘yxati</b>\n\nBitta testni tanlang:",
         parse_mode="HTML",
         reply_markup=tests_list_keyboard(tests),
     )
@@ -203,7 +203,7 @@ async def pick_test(callback: CallbackQuery):
 
 
 # =========================================================
-# ORQAGA — testlar ro'yxatiga qaytish
+# ORQAGA — testlar ro‘yxatiga qaytish
 # =========================================================
 
 
@@ -216,7 +216,7 @@ async def back_to_tests(callback: CallbackQuery):
         tests = result.scalars().all()
 
     await callback.message.edit_text(
-        "📚 <b>Testlar ro'yxati</b>\n\nBitta testni tanlang:",
+        "📚 <b>Testlar ro‘yxati</b>\n\nBitta testni tanlang:",
         parse_mode="HTML",
         reply_markup=tests_list_keyboard(tests),
     )
@@ -253,7 +253,7 @@ async def start_test(callback: CallbackQuery):
 
         if status == "no_questions":
             await callback.message.edit_text(
-                "⚠️ Bu testda hozircha savollar yo'q. Keyinroq urinib ko'ring."
+                "⚠️ Bu testda hozircha savollar yo‘q. Keyinroq urinib ko‘ring."
             )
             await callback.answer()
             return

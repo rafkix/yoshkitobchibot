@@ -58,7 +58,7 @@ class UserService:
 
     # =====================================================
     # COMPLETE REGISTRATION
-    # — Ro'yxatdan o'tish tugaganda referal ball beriladi
+    # — Ro‘yxatdan o‘tish tugaganda referal ball beriladi
     # =====================================================
 
     async def complete_registration(
@@ -78,7 +78,7 @@ class UserService:
         if not user:
             return
 
-        # Foydalanuvchi oldin ro'yxatdan o'tmagan bo'lsa referal balini beramiz
+        # Foydalanuvchi oldin ro‘yxatdan o‘tmagan bo‘lsa referal balini beramiz
         if not user.is_registered and user.referred_by:
             referrer = await self.get_user(user.referred_by)
             if referrer and referrer.user_id != user_id:
@@ -124,7 +124,7 @@ class UserService:
         await self.session.commit()
 
     # =====================================================
-    # GET USER RANK — faqat ro'yxatdan o'tganlar orasida
+    # GET USER RANK — faqat ro‘yxatdan o‘tganlar orasida
     # =====================================================
 
     async def get_user_rank(self, user_id: int) -> int | str:
@@ -145,7 +145,7 @@ class UserService:
         return result.scalar() or "N/A"
 
     # =====================================================
-    # GET TOP USERS — faqat ro'yxatdan o'tganlar
+    # GET TOP USERS — faqat ro‘yxatdan o‘tganlar
     # =====================================================
 
     async def get_top_users(self, limit: int = 10) -> list[User]:
@@ -177,7 +177,7 @@ class UserService:
 
     # =====================================================
     # GET REGISTERED REFERRALS COUNT
-    # — ro'yxatdan o'tgan referallar (ball bergan)
+    # — ro‘yxatdan o‘tgan referallar (ball bergan)
     # =====================================================
 
     async def get_registered_referrals_count(self, user_id: int) -> int:
@@ -203,7 +203,7 @@ class UserService:
 
     async def search_users(self, query: str) -> list[User]:
         """
-        Ism, telefon yoki user_id bo'yicha qidiradi.
+        Ism, telefon yoki user_id bo‘yicha qidiradi.
         """
         result = await self.session.execute(
             select(User).where(

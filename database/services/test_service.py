@@ -81,7 +81,7 @@ class TestService:
         if len(all_ids) == 0:
             return None, "no_questions"
 
-        # Mavjud savollar soni maksimaldan kam bo'lsa, hammasini oladi
+        # Mavjud savollar soni maksimaldan kam bo‘lsa, hammasini oladi
         questions_count = min(QUESTIONS_PER_SESSION, len(all_ids))
         chosen = random.sample(all_ids, questions_count)
 

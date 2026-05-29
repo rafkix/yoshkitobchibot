@@ -233,7 +233,7 @@ async def upload_test_selected(callback: CallbackQuery):
         "<b>Ustunlar:</b>\n"
         "• <code>question</code> — savol matni\n"
         "• <code>option_a / b / c / d</code> — variantlar\n"
-        "• <code>correct</code> — to‘g'ri javob (A/B/C/D)\n"
+        "• <code>correct</code> — to‘g‘ri javob (A/B/C/D)\n"
         "• <code>difficulty</code> — qiyinlik (-1.5, 0.0, 2.3...)\n\n"
         "⚠️ 1-qator sarlavha bo‘lishi shart.",
         parse_mode="HTML",

@@ -26,7 +26,7 @@ DIRECTION_LABELS = {
 }
 
 CONTEST_LABELS = {
-    ContestType.YOSH_KITOBXON_2026: '"Yosh kitobxon" tanlovi 2026',
+    ContestType.YOSH_KITOBXON_2026: '“Yosh kitobchi” - 2026 yoz',
 }
 
 PAGE_SIZE = 10
@@ -47,7 +47,7 @@ class UserSearchState(StatesGroup):
 def user_detail_text(user, referrals_total: int, referrals_registered: int) -> str:
     direction = DIRECTION_LABELS.get(user.direction, "—")
     contest = CONTEST_LABELS.get(user.contest, "—")
-    status = "✅ Ro'yxatdan o'tgan" if user.is_registered else "⏳ Ro'yxatdan o'tmagan"
+    status = "✅ Ro‘yxatdan o‘tgan" if user.is_registered else "⏳ Ro‘yxatdan o‘tmagan"
 
     # referred_by
     ref_by = f"<code>{user.referred_by}</code>" if user.referred_by else "—"
@@ -60,7 +60,7 @@ def user_detail_text(user, referrals_total: int, referrals_registered: int) -> s
         "🪪 <b>Shaxsiy ma'lumotlar</b>\n"
         f"  <b>Telegram ID:</b> <code>{user.user_id}</code>\n"
         f"  <b>F.I.Sh.:</b> {user.full_name or '—'}\n"
-        f"  <b>Tug'ilgan sana:</b> {user.birth_date or '—'}\n"
+        f"  <b>Tug‘ilgan sana:</b> {user.birth_date or '—'}\n"
         f"  <b>Telefon:</b> <code>{user.phone_number or '—'}</code>\n\n"
 
         "📍 <b>Manzil</b>\n"
@@ -68,12 +68,12 @@ def user_detail_text(user, referrals_total: int, referrals_registered: int) -> s
         f"  <b>Tuman:</b> {user.district or '—'}\n"
         f"  <b>Mahalla:</b> {user.neighborhood or '—'}\n\n"
 
-        "🏫 <b>Ish / O'qish joyi</b>\n"
+        "🏫 <b>Ish / o‘qish joyi</b>\n"
         f"  {user.workplace or '—'}\n\n"
 
         "🏆 <b>Tanlov ma'lumotlari</b>\n"
         f"  <b>Tanlov:</b> {contest}\n"
-        f"  <b>Yo'nalish:</b> {direction}\n\n"
+        f"  <b>Yo‘nalish:</b> {direction}\n\n"
 
         "📊 <b>Balllar</b>\n"
         f"  <b>Umumiy:</b> {user.total_score} ball\n"
@@ -83,10 +83,10 @@ def user_detail_text(user, referrals_total: int, referrals_registered: int) -> s
         "👥 <b>Referal statistikasi</b>\n"
         f"  <b>Kim taklif qilgan:</b> {ref_by}\n"
         f"  <b>U taklif qilganlar:</b> {referrals_total} ta\n"
-        f"  └ Ro'yxatdan o'tganlari: {referrals_registered} ta (ball berilgan)\n\n"
+        f"  └ Ro‘yxatdan o‘tganlari: {referrals_registered} ta (ball berilgan)\n\n"
 
         f"📌 <b>Holat:</b> {status}\n"
-        f"📅 <b>Qo'shilgan:</b> {user.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"📅 <b>Qo‘shilgan:</b> {user.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n"
         "━━━━━━━━━━━━━━━━━━━━━"
     )
 
@@ -115,8 +115,8 @@ def users_list_keyboard(
     # --- Filter tugmalari ---
     filters = [
         ("👥 Barchasi", "all"),
-        ("✅ O'tganlar", "reg"),
-        ("⏳ O'tmaganlar", "unreg"),
+        ("✅ o‘tganlar", "reg"),
+        ("⏳ o‘tmaganlar", "unreg"),
     ]
     for label, mode in filters:
         prefix = "▶️ " if filter_mode == mode else ""
@@ -158,7 +158,7 @@ def user_detail_keyboard(user_id: int, back_page: int = 0, filter_mode: str = "a
         callback_data=f"admum:{user_id}",
     )
     builder.button(
-        text="⏪ Ro'yxatga qaytish",
+        text="⏪ Ro‘yxatga qaytish",
         callback_data=f"admup:{back_page}:{filter_mode}:{search_query[:20]}",
     )
     builder.adjust(1)
@@ -179,7 +179,7 @@ def build_list_text(users: list, page: int, total: int, filter_mode: str, search
     start = page * PAGE_SIZE
     end = min(start + PAGE_SIZE, total)
 
-    filter_names = {"all": "Barchasi", "reg": "✅ Ro'yxatdan o'tganlar", "unreg": "⏳ O'tmaganlar"}
+    filter_names = {"all": "Barchasi", "reg": "✅ Ro‘yxatdan o‘tganlar", "unreg": "⏳ o‘tmaganlar"}
     header = filter_names.get(filter_mode, "Barchasi")
 
     text = (
@@ -187,7 +187,7 @@ def build_list_text(users: list, page: int, total: int, filter_mode: str, search
         f"📊 Jami: <b>{total}</b> ta"
     )
     if total > 0:
-        text += f" | Ko'rsatilmoqda: <b>{start + 1}–{end}</b>"
+        text += f" | Ko‘rsatilmoqda: <b>{start + 1}–{end}</b>"
     if search_query:
         text += f"\n🔍 Qidiruv: <i>{search_query}</i>"
     return text
@@ -210,11 +210,11 @@ async def admin_users_menu(message: Message, state: FSMContext):
     page_users = all_users[:PAGE_SIZE]
 
     text = (
-        "👥 <b>Foydalanuvchilar bo'limi</b>\n\n"
+        "👥 <b>Foydalanuvchilar bo‘limi</b>\n\n"
         f"📊 Jami: <b>{total}</b> ta\n"
-        f"  ✅ Ro'yxatdan o'tgan: <b>{reg}</b> ta\n"
-        f"  ⏳ O'tmagan: <b>{unreg}</b> ta\n\n"
-        "Foydalanuvchi ustiga bosib to'liq ma'lumotini ko'ring."
+        f"  ✅ Ro‘yxatdan o‘tgan: <b>{reg}</b> ta\n"
+        f"  ⏳ o‘tmagan: <b>{unreg}</b> ta\n\n"
+        "Foydalanuvchi ustiga bosib to‘liq ma'lumotini ko‘ring."
     )
 
     await message.answer(
@@ -377,7 +377,7 @@ async def admin_users_search_or_message(message: Message, state: FSMContext):
             )
         except Exception as e:
             await message.answer(
-                f"❌ Xabar yuborib bo'lmadi: <code>{e}</code>",
+                f"❌ Xabar yuborib bo‘lmadi: <code>{e}</code>",
                 parse_mode="HTML",
             )
         return
@@ -398,8 +398,8 @@ async def admin_users_search_or_message(message: Message, state: FSMContext):
 
     if not users:
         return await message.answer(
-            f"❌ <b>'{query}'</b> bo'yicha hech narsa topilmadi.\n\n"
-            "Qayta urinib ko'ring.",
+            f"❌ <b>'{query}'</b> bo‘yicha hech narsa topilmadi.\n\n"
+            "Qayta urinib ko‘ring.",
             parse_mode="HTML",
         )
 
@@ -423,7 +423,7 @@ async def admin_users_search_or_message(message: Message, state: FSMContext):
 async def admin_users_back(callback: CallbackQuery):
     await callback.message.delete()
     await callback.message.answer(
-        "🔐 Admin panel\nKerakli bo'limni tanlang.",
+        "🔐 Admin panel\nKerakli bo‘limni tanlang.",
         reply_markup=admin_menu(),
     )
     await callback.answer()
