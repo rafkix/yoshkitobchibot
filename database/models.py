@@ -208,6 +208,8 @@ class Test(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    starts_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    ends_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC)
     )
@@ -254,10 +256,13 @@ class Question(Base):
 
 class TestSession(Base):
     __tablename__ = "test_sessions"
+    __table_args__ = (
+        UniqueConstraint("user_id", "test_id", name="uq_test_session_user_test"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.user_id"), nullable=False, unique=True
+        BigInteger, ForeignKey("users.user_id"), nullable=False
     )
     test_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("tests.id"), nullable=False
@@ -276,3 +281,86 @@ class TestSession(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     test: Mapped["Test"] = relationship("Test", back_populates="sessions")
+
+
+# =========================================================
+# CONTEST (Referal konkurs)
+# =========================================================
+
+
+class ContestStatus(str, Enum):
+    ACTIVE   = "active"
+    FINISHED = "finished"
+    DRAFT    = "draft"
+
+
+class ReferralContest(Base):
+    """Admin tomonidan yaratilgan vaqtinchalik referal konkurs."""
+    __tablename__ = "referral_contests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    button_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Nechtadan referal talab qilinadi
+    min_referrals: Mapped[int] = mapped_column(Integer, default=10)
+
+    prize_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    status: Mapped[ContestStatus] = mapped_column(
+        SqlEnum(ContestStatus), default=ContestStatus.DRAFT, nullable=False
+    )
+
+    # g‘olib user_id (random tanlangandan keyin to‘ldiriladi)
+    winner_user_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+
+    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC)
+    )
+
+
+# =========================================================
+# BOT SETTINGS (Sozlamalar)
+# =========================================================
+
+
+class BotSettings(Base):
+    """Bot global sozlamalari — admin panel orqali boshqariladi."""
+    __tablename__ = "bot_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
+
+    def __repr__(self):
+        return f"<BotSettings(key={self.key}, value={self.value})>"
+
+
+# =========================================================
+# CUSTOM BUTTON (Admin tomonidan sozlanadigan tugmalar)
+# =========================================================
+
+
+class CustomButton(Base):
+    """Admin tomonidan yaratilgan inline tugmalar."""
+    __tablename__ = "custom_buttons"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    text: Mapped[str] = mapped_column(String(255), nullable=False)  # tugma matni
+    action_type: Mapped[str] = mapped_column(String(50), nullable=False)  # url, message, handler
+    action_value: Mapped[str | None] = mapped_column(Text, nullable=True)  # URL yoki xabar matni
+    position: Mapped[int] = mapped_column(Integer, default=0)  # tartib raqami
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    menu_section: Mapped[str] = mapped_column(String(50), default="main")  # qaysi menyu
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC)
+    )

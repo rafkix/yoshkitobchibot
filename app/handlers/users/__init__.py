@@ -3,8 +3,12 @@ from .start import router as user_router
 from .register import router as register_router
 from .help import router as help_router
 from .menu import router as menu_router
+from .profile import router as profile_router
+from .rating import router as rating_router
+from .referral import router as referral_router
 from .prizes import router as prizes_router
 from .test import router as test_router
+from .custom_buttons import router as custom_buttons_router
 
 
 def setup(dp: Dispatcher):
@@ -16,6 +20,10 @@ def setup(dp: Dispatcher):
         register_router,
         help_router,
         menu_router,
+        rating_router,
+        profile_router,
+        referral_router,
         prizes_router,
         test_router,
+        custom_buttons_router,
     )

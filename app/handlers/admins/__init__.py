@@ -7,6 +7,10 @@ from .ads.send_ads import router as admin_ads_router
 from .ads.ads import router as ads
 from .ads.upload_questions import router as upload_questions_router
 from .users import router as users_router
+from .contest import router as contest_router
+from .tests.test_admin import router as test_admin_router
+from .buttons.button_admin import router as buttons_router
+from .settings_admin import router as settings_router
 
 
 def setup(dp: Dispatcher):
@@ -19,4 +23,8 @@ def setup(dp: Dispatcher):
         ads,
         upload_questions_router,
         users_router,
+        contest_router,
+        test_admin_router,
+        buttons_router,
+        settings_router,
     )

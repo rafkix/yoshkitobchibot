@@ -186,7 +186,7 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
     builder.add(KeyboardButton(text="👤 Profil"))
     builder.add(KeyboardButton(text="🗞 Targ‘ibot"))
     builder.add(KeyboardButton(text="🎁 Sovg‘alar"))
-    builder.add(KeyboardButton(text="❓ Yordam"))
+    # builder.add(KeyboardButton(text="🔘 Qo'shimcha"))
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
 
@@ -204,6 +204,11 @@ def admin_menu() -> ReplyKeyboardMarkup:
             ],
             [
                 KeyboardButton(text="👥 Foydalanuvchilar"),
+                KeyboardButton(text="🏆 Konkurs"),
+            ],
+            [
+                KeyboardButton(text="🔘 Tugmalar"),
+                KeyboardButton(text="⚙️ Sozlamalar"),
             ],
         ],
         resize_keyboard=True,

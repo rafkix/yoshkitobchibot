@@ -32,7 +32,7 @@ async def show_delete_channels_list(callback: CallbackQuery):
     if not channels:
         await callback.message.edit_text(
             "📋 <b>Majburiy obuna kanallari ro‘yxati:</b>\n\n"
-            "❌ O‘chirish uchun kanal topilmadi.",
+            "❌ o‘chirish uchun kanal topilmadi.",
             parse_mode="HTML",
             reply_markup=await admin_channel(),
         )
@@ -42,7 +42,7 @@ async def show_delete_channels_list(callback: CallbackQuery):
     text = (
         "📋 <b>Majburiy obuna kanallari ro‘yxati:</b>\n\n"
         f"🔢 <b>Jami:</b> {total} ta\n\n"
-        "🗑 O‘chirish uchun kerakli kanal nomini bosing."
+        "🗑 o‘chirish uchun kerakli kanal nomini bosing."
     )
 
     await callback.message.edit_text(

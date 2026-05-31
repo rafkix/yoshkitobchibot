@@ -10,7 +10,7 @@ from sqlalchemy import select, delete, func
 from app.filters.is_admin import IsAdmin
 from data.config import ADMINS
 from database.database import session_maker
-from database.models import Question, Test
+from database.models import Question, Test, TestSession
 
 router = Router()
 
@@ -26,6 +26,7 @@ REQUIRED_COLUMNS = {
 VALID_ANSWERS = {"A", "B", "C", "D"}
 
 _pending_upload: dict[int, int] = {}
+_pending_upload_mode: dict[int, str] = {}
 
 
 # =========================================================
@@ -77,6 +78,7 @@ def test_main_keyboard():
         InlineKeyboardButton(text="📥 Savol yuklash", callback_data="admin:upload")
     )
     builder.add(InlineKeyboardButton(text="📊 Statistika", callback_data="admin:stat"))
+    builder.add(InlineKeyboardButton(text="⚙️ Aktivlik va vaqt", callback_data="ta_list"))
     builder.add(
         InlineKeyboardButton(text="🗑 Savollarni o‘chirish", callback_data="admin:clear")
     )
@@ -87,6 +89,25 @@ def test_main_keyboard():
 def back_button(callback_data: str = "admin:menu"):
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text="🔙 Orqaga", callback_data=callback_data))
+    return builder.as_markup()
+
+
+def upload_mode_keyboard(test_id: int):
+    builder = InlineKeyboardBuilder()
+    builder.add(
+        InlineKeyboardButton(
+            text="➕ Mavjudiga qo'shish",
+            callback_data=f"upload_mode:{test_id}:append",
+        )
+    )
+    builder.add(
+        InlineKeyboardButton(
+            text="♻️ Eskisini almashtirish",
+            callback_data=f"upload_mode:{test_id}:replace",
+        )
+    )
+    builder.add(InlineKeyboardButton(text="🔙 Orqaga", callback_data="admin:upload"))
+    builder.adjust(1)
     return builder.as_markup()
 
 
@@ -225,10 +246,41 @@ async def upload_test_selected(callback: CallbackQuery):
         await callback.answer("Test topilmadi.", show_alert=True)
         return
 
+    await callback.message.edit_text(
+        f"📥 <b>{test.title}</b>\n\n"
+        "Savollar qanday yuklansin?",
+        parse_mode="HTML",
+        reply_markup=upload_mode_keyboard(test_id),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("upload_mode:"), IsAdmin(admin_ids=ADMINS))
+async def upload_mode_selected(callback: CallbackQuery):
+    _, test_id_raw, mode = callback.data.split(":")
+    test_id = int(test_id_raw)
+    if mode not in {"append", "replace"}:
+        return await callback.answer("Noto'g'ri rejim.", show_alert=True)
+
+    async with session_maker() as session:
+        result = await session.execute(select(Test).where(Test.id == test_id))
+        test = result.scalar_one_or_none()
+
+    if not test:
+        await callback.answer("Test topilmadi.", show_alert=True)
+        return
+
     _pending_upload[callback.from_user.id] = test_id
+    _pending_upload_mode[callback.from_user.id] = mode
+    mode_text = (
+        "mavjud savollarga qo'shiladi"
+        if mode == "append"
+        else "eski savollar o'chirilib, yangisi yoziladi"
+    )
 
     await callback.message.edit_text(
         f"📥 <b>{test.title}</b>\n\n"
+        f"Rejim: <b>{mode_text}</b>\n\n"
         "Endi <b>.xlsx</b> faylni yuboring.\n\n"
         "<b>Ustunlar:</b>\n"
         "• <code>question</code> — savol matni\n"
@@ -258,6 +310,7 @@ async def handle_excel_upload(message: Message, bot: Bot):
         return
 
     test_id = _pending_upload.pop(message.from_user.id, None)
+    mode = _pending_upload_mode.pop(message.from_user.id, "append")
     if test_id is None:
         await message.answer(
             "⚠️ Avval testni tanlang.", reply_markup=test_main_keyboard()
@@ -361,6 +414,9 @@ async def handle_excel_upload(message: Message, bot: Bot):
         return
 
     async with session_maker() as session:
+        if mode == "replace":
+            await session.execute(delete(TestSession).where(TestSession.test_id == test_id))
+            await session.execute(delete(Question).where(Question.test_id == test_id))
         session.add_all(questions_to_add)
         await session.commit()
         total = await session.scalar(

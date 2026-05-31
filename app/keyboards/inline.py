@@ -163,7 +163,7 @@ def ad_detail_keyboard(ad_id: int, is_active: bool) -> InlineKeyboardMarkup:
         callback_data=f"toggle_ad:{ad_id}",
     )
     builder.button(
-        text="🗑 O‘chirish",
+        text="🗑 o‘chirish",
         callback_data=f"delete_ad:{ad_id}",
     )
     builder.button(

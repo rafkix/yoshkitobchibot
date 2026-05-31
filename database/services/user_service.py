@@ -2,6 +2,7 @@ from sqlalchemy import select, update, delete, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models import User, ContestType, DirectionType
+from database.services.settings_service import SettingsService
 
 
 # =========================================================
@@ -82,8 +83,11 @@ class UserService:
         if not user.is_registered and user.referred_by:
             referrer = await self.get_user(user.referred_by)
             if referrer and referrer.user_id != user_id:
-                referrer.referral_score += 1
-                referrer.total_score += 1
+                # Sozlamalardan ball miqdorini olamiz
+                settings_svc = SettingsService(self.session)
+                score_per_referral = await settings_svc.get_referral_score()
+                referrer.referral_score += score_per_referral
+                referrer.total_score += score_per_referral
 
         await self.update_user(
             user_id=user_id,

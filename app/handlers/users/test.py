@@ -1,70 +1,20 @@
 import asyncio
-import random
 
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import Message, CallbackQuery
 from sqlalchemy import select, func
 
+from app.keyboards.users.tests import (
+    question_keyboard,
+    start_test_keyboard,
+    tests_list_keyboard,
+)
 from database.database import session_maker
 from database.models import TestSession, Test, Question
 from database.services.test_service import TestService, SECONDS_PER_QUESTION
+from database.services.settings_service import SettingsService
 
 router = Router()
-
-
-# =========================================================
-# KLAVIATURA — TESTLAR Ro‘YXATI
-# =========================================================
-
-EMOJIS = ["📗", "📘", "📙", "📕"]
-
-
-def tests_list_keyboard(tests: list):
-    builder = InlineKeyboardBuilder()
-    for t in tests:
-        emoji = random.choice(EMOJIS)
-        builder.add(
-            InlineKeyboardButton(
-                text=f"{emoji} {t.title}",
-                callback_data=f"pick_test:{t.id}",
-            )
-        )
-    builder.adjust(1)
-    return builder.as_markup()
-
-
-def start_test_keyboard(test_id: int):
-    builder = InlineKeyboardBuilder()
-    builder.add(
-        InlineKeyboardButton(text="🚀 Boshlash", callback_data=f"start_test:{test_id}")
-    )
-    builder.add(InlineKeyboardButton(text="🔙 Orqaga", callback_data="back_to_tests"))
-    builder.adjust(1)
-    return builder.as_markup()
-
-
-# =========================================================
-# KLAVIATURA — A B C D
-# =========================================================
-
-
-def question_keyboard(question_id: int):
-    builder = InlineKeyboardBuilder()
-    for opt in ["A", "B", "C", "D"]:
-        builder.add(
-            InlineKeyboardButton(
-                text=opt,
-                callback_data=f"ans:{question_id}:{opt}",
-            )
-        )
-    builder.adjust(4)
-    return builder.as_markup()
-
-
-# =========================================================
-# YORDAMCHI — vaqtni chiroyli ko‘rsatish
-# =========================================================
 
 
 def format_duration(seconds: int) -> str:
@@ -144,10 +94,7 @@ def result_text(result: dict, expired: bool = False) -> str:
 @router.message(F.text == "📄 Test")
 async def test_list_show(message: Message):
     async with session_maker() as session:
-        result = await session.execute(
-            select(Test).where(Test.is_active.is_(True)).order_by(Test.id)
-        )
-        tests = result.scalars().all()
+        tests = await TestService(session).get_available_tests()
 
     if not tests:
         await message.answer(
@@ -172,11 +119,15 @@ async def pick_test(callback: CallbackQuery):
     test_id = int(callback.data.split(":")[1])
 
     async with session_maker() as session:
+        service = TestService(session)
         result = await session.execute(select(Test).where(Test.id == test_id))
         test = result.scalar_one_or_none()
 
         if not test:
             await callback.answer("Test topilmadi.", show_alert=True)
+            return
+        if not service.is_available(test):
+            await callback.answer("Bu test hozir aktiv emas.", show_alert=True)
             return
 
         q_count = await session.scalar(
@@ -185,16 +136,23 @@ async def pick_test(callback: CallbackQuery):
                 Question.is_active.is_(True),
             )
         )
+        settings = SettingsService(session)
+        max_questions = await settings.get_int("test_max_questions", 40)
+        seconds_per_question = await settings.get_int(
+            "test_seconds_per_question",
+            SECONDS_PER_QUESTION,
+        )
 
     # Savol soniga qarab vaqtni hisoblash
-    actual_count = min(q_count, 40)
-    duration_sec = actual_count * SECONDS_PER_QUESTION
+    actual_count = min(q_count or 0, max_questions)
+    duration_sec = actual_count * seconds_per_question
     duration_str = format_duration(duration_sec)
 
     await callback.message.edit_text(
         f"📋 <b>{test.title}</b>\n\n"
         f"📝 Savollar soni: <b>{actual_count} ta</b>\n"
         f"🕐 Vaqt: <b>{duration_str}</b>\n\n"
+        f"🗓 Ochilish vaqti: <b>{service.availability_text(test)}</b>\n\n"
         f"Testni boshlashga tayyormisiz?",
         parse_mode="HTML",
         reply_markup=start_test_keyboard(test_id),
@@ -210,10 +168,7 @@ async def pick_test(callback: CallbackQuery):
 @router.callback_query(F.data == "back_to_tests")
 async def back_to_tests(callback: CallbackQuery):
     async with session_maker() as session:
-        result = await session.execute(
-            select(Test).where(Test.is_active.is_(True)).order_by(Test.id)
-        )
-        tests = result.scalars().all()
+        tests = await TestService(session).get_available_tests()
 
     await callback.message.edit_text(
         "📚 <b>Testlar ro‘yxati</b>\n\nBitta testni tanlang:",
@@ -254,6 +209,13 @@ async def start_test(callback: CallbackQuery):
         if status == "no_questions":
             await callback.message.edit_text(
                 "⚠️ Bu testda hozircha savollar yo‘q. Keyinroq urinib ko‘ring."
+            )
+            await callback.answer()
+            return
+
+        if status == "not_available":
+            await callback.message.edit_text(
+                "⚠️ Bu test hozir aktiv emas yoki vaqti tugagan."
             )
             await callback.answer()
             return
@@ -307,7 +269,7 @@ async def auto_finish_timer(user_id: int, chat_id: int, bot, test_id: int):
         session_obj = result.scalar_one_or_none()
         if not session_obj:
             return
-        wait = session_obj.duration_seconds
+        wait = service.remaining_seconds(session_obj)
 
     await asyncio.sleep(wait)
 

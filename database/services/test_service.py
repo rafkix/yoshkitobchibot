@@ -4,16 +4,66 @@ from datetime import datetime, UTC, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Question, TestSession
+from database.models import Question, Test, TestSession
 from app.utils.rasch import rasch_ability, theta_to_score
+from database.services.settings_service import SettingsService
 
-QUESTIONS_PER_SESSION = 40  # maksimal savol soni
-SECONDS_PER_QUESTION = 90  # har bir savolga 1.5 daqiqa
+QUESTIONS_PER_SESSION = 40  # default (sozlamalardan o'zgartiriladi)
+SECONDS_PER_QUESTION = 90   # default (sozlamalardan o'zgartiriladi)
 
 
 class TestService:
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    def _now(self) -> datetime:
+        return datetime.now(UTC)
+
+    def _as_utc(self, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
+
+    def availability_status(self, test: Test) -> str:
+        if not test.is_active:
+            return "inactive"
+
+        now = self._now()
+        starts_at = self._as_utc(test.starts_at)
+        ends_at = self._as_utc(test.ends_at)
+
+        if starts_at and now < starts_at:
+            return "not_started"
+        if ends_at and now >= ends_at:
+            return "ended"
+        return "available"
+
+    def is_available(self, test: Test) -> bool:
+        return self.availability_status(test) == "available"
+
+    async def get_available_tests(self) -> list[Test]:
+        result = await self.session.execute(
+            select(Test).where(Test.is_active.is_(True)).order_by(Test.id)
+        )
+        tests = result.scalars().all()
+        return [test for test in tests if self.is_available(test)]
+
+    def availability_text(self, test: Test) -> str:
+        starts_at = self._as_utc(test.starts_at)
+        ends_at = self._as_utc(test.ends_at)
+
+        if starts_at and ends_at:
+            return (
+                f"{starts_at.strftime('%Y-%m-%d %H:%M')} dan "
+                f"{ends_at.strftime('%Y-%m-%d %H:%M')} gacha"
+            )
+        if starts_at:
+            return f"{starts_at.strftime('%Y-%m-%d %H:%M')} dan boshlab"
+        if ends_at:
+            return f"{ends_at.strftime('%Y-%m-%d %H:%M')} gacha"
+        return "Doimiy ochiq"
 
     # ─── Tugallangan sessiya bormi? ────────────────────────────────────────
     async def has_completed(self, user_id: int, test_id: int) -> bool:
@@ -48,8 +98,13 @@ class TestService:
     ) -> tuple[TestSession | None, str]:
         """
         Qaytaradi: (session_obj, status)
-        status: "completed" | "expired" | "continued" | "new" | "no_questions"
+        status: "completed" | "expired" | "continued" | "new" | "no_questions" | "not_available"
         """
+        test_result = await self.session.execute(select(Test).where(Test.id == test_id))
+        test = test_result.scalar_one_or_none()
+        if not test or not self.is_available(test):
+            return None, "not_available"
+
         if await self.has_completed(user_id, test_id):
             return None, "completed"
 
@@ -81,12 +136,17 @@ class TestService:
         if len(all_ids) == 0:
             return None, "no_questions"
 
-        # Mavjud savollar soni maksimaldan kam bo‘lsa, hammasini oladi
-        questions_count = min(QUESTIONS_PER_SESSION, len(all_ids))
+        # Sozlamalardan dinamik qiymat olish
+        svc = SettingsService(self.session)
+        max_q = await svc.get_int("test_max_questions", QUESTIONS_PER_SESSION)
+        sec_q = await svc.get_int("test_seconds_per_question", SECONDS_PER_QUESTION)
+
+        # Mavjud savollar soni maksimaldan kam bo'lsa, hammasini oladi
+        questions_count = min(max_q, len(all_ids))
         chosen = random.sample(all_ids, questions_count)
 
         # Vaqtni savol soniga qarab hisoblash
-        duration = questions_count * SECONDS_PER_QUESTION
+        duration = questions_count * sec_q
 
         session_obj = TestSession(
             user_id=user_id,

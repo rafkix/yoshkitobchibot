@@ -1,261 +1,141 @@
-# 📚 Yosh Kitobxon Bot
+# Yaxshilanishlar ro'yxati — yoshkitobchibot
 
-**Yosh Kitobxon Bot** — o‘zbekistondagi "Yosh Kitobxon 2026" tanloviga onlayn ro‘yxatdan o‘tishni avtomatlashtiruvchi Telegram bot. Bot foydalanuvchini qadam-baqadam ro‘yxatdan o‘tkazadi, obunani tekshiradi, referal tizimi orqali ball yig‘ish imkonini beradi va admin paneli orqali to‘liq boshqariladi.
+## 1. 🎯 Referal Ball Tizimi (Sozlanadigan)
+
+**Fayl:** `database/services/settings_service.py` (yangi)
+
+- Har bir taklif qilingan va ro'yxatdan o'tgan foydalanuvchi uchun beriladigan ball endi **admin panel orqali o'zgartiriladi**
+- Default: **1 ball** har referal uchun
+- O'zgartirish: Admin Panel → ⚙️ Sozlamalar → Referal ball
+  - yoki: Admin Panel → 🔘 Tugmalar → 🎯 Referal ball sozlash
+- `database/services/user_service.py` — `complete_registration()` endi `SettingsService`dan ball o'qiydi
+- Targ'ibot sahifasida ham hozirgi ball ko'rsatiladi (+N ball)
 
 ---
 
-## 📁 Loyiha tuzilmasi
+## 2. 👤 Profil — Ma'lumotlarni O'zgartirish
 
+**Fayl:** `app/handlers/users/menu.py` (mavjud)
+
+- `profile_edit_keyboard()` tugmasi — `✏️ Ma'lumotlarni o'zgartirish`
+- O'zgartirilishi mumkin: F.I.Sh., Ish/o'qish joyi, Mahalla
+- Inline tugmalar orqali har bir maydon alohida tanlanadi
+
+---
+
+## 3. 📁 Handlers Tizimi Tartiblanishi
+
+**Yangi struktura:**
 ```
-yoshkitobchibot/
-│
-├── main.py                        # Botni ishga tushiradigan asosiy fayl
-├── api.py                         # o‘zbekiston hududlari ma'lumotini yuklash skripti
-├── requirements.txt               # Kutubxonalar ro‘yxati (pip freeze)
-├── .env                           # Muhit o‘zgaruvchilari (token, adminlar, IP)
-│
-├── data/
-│   ├── config.py                  # .env dan BOT_TOKEN, ADMINS, IP ni o‘qish
-│   └── checking.py                # Foydalanuvchini kanalda a'zo ekanligini tekshirish
-│
-├── database/
-│   ├── database.py                # SQLAlchemy engine va sessiya sozlamalari
-│   ├── models.py                  # User, Channel, ChannelJoin, Ad modellari
-│   └── services/
-│       ├── user_service.py        # Foydalanuvchi CRUD va ballar
-│       ├── channel_service.py     # Kanal CRUD
-│       └── join_request_service.py# Join request kuzatuvi
-│
-├── middlewares/
-│   ├── checking_middlewares.py    # Obuna tekshirish middleware (SubscriptionMiddleware)
-│   ├── throttling.py              # So‘rovlar chastotasini cheklash
-│   └── __init__.py                # Middlewareni dispatcherga ulash
-│
-├── app/
-│   ├── data/
-│   │   ├── regions.json           # o‘zbekiston viloyatlari
-│   │   ├── districts.json         # Tumanlar
-│   │   └── villages.json          # MFY lar (mahallalar)
-│   │
-│   ├── filters/
-│   │   └── is_admin.py            # Admin filteri
-│   │
-│   ├── handlers/
-│   │   ├── users/
-│   │   │   ├── start.py           # /start komandasi va referal tizimi
-│   │   │   ├── register.py        # Ro‘yxatdan o‘tish oqimi (FSM)
-│   │   │   ├── menu.py            # Asosiy menyu
-│   │   │   └── help.py            # Yordam
-│   │   ├── admins/
-│   │   │   ├── main_admin.py      # /panel komandasi, reklama, xabar yuborish
-│   │   │   └── channels/
-│   │   │       ├── add_channel.py     # Kanal qo‘shish
-│   │   │       ├── delete_channel.py  # Kanalni o‘chirish
-│   │   │       └── view_channels.py   # Kanallar ro‘yxati
-│   │   └── channels/
-│   │       └── chatjoin.py        # ChatJoinRequest hodisasini qayta ishlash
-│   │
-│   ├── keyboards/
-│   │   ├── reply.py               # Reply klaviaturalar (viloyat, tuman, mahalla...)
-│   │   └── inline.py              # Inline klaviaturalar
-│   │
-│   ├── states/
-│   │   ├── register.py            # Ro‘yxatdan o‘tish holatlari (FSMState)
-│   │   └── add_channel.py         # Kanal qo‘shish holatlari
-│   │
-│   └── utils/
-│       ├── constants.py           # Umumiy konstantalar
-│       ├── strings.py             # Bot xabarlari (matnlar)
-│       ├── db_filler.py           # Ma'lumotlar bazasini boshlang‘ich to‘ldirish
-│       ├── notify_admins.py       # Adminlarga bildirishnoma yuborish
-│       ├── set_bot_commands.py    # Bot komandalarini o‘rnatish
-│       └── misc/
-│           ├── logging.py         # Logger sozlamalari
-│           └── throttling.py      # Throttling yordamchi funksiyalar
-│
-└── scripts/
-    └── add_user.py                # Foydalanuvchini qo‘lda qo‘shish skripti
+app/handlers/
+├── users/
+│   ├── start.py
+│   ├── menu.py         ← profil, reyting, targ'ibot
+│   ├── test.py         ← test ishlash
+│   ├── register.py
+│   ├── help.py
+│   └── prizes.py
+└── admins/
+    ├── main_admin.py
+    ├── users.py
+    ├── contest.py
+    ├── settings_admin.py    ← YANGI: sozlamalar
+    ├── tests/
+    │   └── test_admin.py    ← YANGI: test boshqaruvi
+    ├── buttons/
+    │   └── button_admin.py  ← YANGI: tugmalar boshqaruvi
+    ├── ads/
+    └── channels/
 ```
 
 ---
 
-## ⚙️ Texnologiyalar
+## 4. 🧪 Test Bo'limi Yaxshilash
 
-| Texnologiya | Versiya | Maqsad |
-|---|---|---|
-| Python | 3.12 | Asosiy til |
-| Aiogram | 3.21.0 | Telegram Bot Framework |
-| SQLAlchemy | 2.0.50 | Async ORM |
-| aiosqlite | 0.22.0 | SQLite async driver |
-| environs | 15.0.1 | .env faylini o‘qish |
-| requests | 2.34.2 | Hudud API so‘rovlari |
+**Fayl:** `app/handlers/admins/tests/test_admin.py` (yangi)
 
----
-
-## 🗄️ Ma'lumotlar bazasi modellari
-
-### `User` — Foydalanuvchi
-| Maydon | Turi | Tavsif |
-|---|---|---|
-| `user_id` | BigInteger | Telegram ID (unique) |
-| `full_name` | String | F.I.Sh |
-| `birth_date` | Date | Tug‘ilgan sana |
-| `phone_number` | String | Telefon raqami (unique) |
-| `region` | String | Viloyat |
-| `district` | String | Tuman |
-| `neighborhood` | String | Mahalla |
-| `workplace` | String | Ish/o‘qish joyi |
-| `contest` | Enum | Tanlov (`yosh_kitobxon_2026`) |
-| `direction` | Enum | Yosh toifasi (10-14, 15-19, 20-30) |
-| `referral_score` | Integer | Referal ballari |
-| `test_score` | Integer | Test ballari |
-| `total_score` | Integer | Umumiy ball |
-| `referred_by` | BigInteger | Kim taklif qildi (FK → users) |
-| `is_admin` | Boolean | Admin yoki yo‘q |
-| `is_registered` | Boolean | Ro‘yxatdan o‘tgan yoki yo‘q |
-
-### `Channel` — Majburiy obuna kanali
-Admin tomonidan qo‘shilgan kanallar. `is_private` uchun join request orqali tekshiriladi, ochiq kanallarda `get_chat_member` ishlatiladi.
-
-### `ChannelJoin` — Obuna tarixi
-Qaysi foydalanuvchi qaysi kanalga qachon qo‘shilgani va tark etgani qayd etiladi.
-
-### `Ad` — Reklama
-Admin tomonidan boshqariladigan reklama bloklari (sarlavha, matn, tugmalar).
+Admin panel → 📋 Testlar ro'yxati orqali:
+- ✅/🔴 Testni faollashtirish/o'chirish (toggle)
+- 🗑 Test sessiyalarini tozalash (foydalanuvchilar qayta topshira olsin)
+- 📊 Har bir test statistikasi (jami/tugatilgan sessiyalar)
+- ⚙️ Test sozlamalari:
+  - **Maksimal savollar soni** (default: 40 ta)
+  - **Har savol uchun vaqt** (default: 90 soniya)
+- Sozlamalar `BotSettings` jadvalida saqlanadi va `TestService` dinamik o'qiydi
 
 ---
 
-## 🔄 Ro‘yxatdan o‘tish oqimi
+## 5. 🏆 Konkurs Tizimi
 
-Bot FSM (Finite State Machine) yordamida foydalanuvchini quyidagi ketma-ket bosqichlardan o‘tkazadi:
+**Fayl:** `app/handlers/admins/contest.py` (mavjud, yaxshilangan)
 
-```
-/start
-  └─ Yangi foydalanuvchi → [Ro‘yxatdan o‘tish tugmasi]
-       ↓
-  F.I.Sh kiritish
-       ↓
-  Tug‘ilgan sana (DD.MM.YYYY)
-       ↓
-  Viloyat tanlash (reply keyboard)
-       ↓
-  Tuman tanlash
-       ↓
-  Mahalla tanlash (yoki qo‘lda kiritish)
-       ↓
-  Ish/o‘qish joyi
-       ↓
-  Telefon raqami (Contact orqali)
-       ↓
-  Tanlov tanlash ("Yosh kitobxon" 2026)
-       ↓
-  Yosh toifasi tanlash (10-14 / 15-19 / 20-30)
-       ↓
-  Ma'lumotlarni tasdiqlash (inline tugmalar)
-       ↓
-  ✅ Ro‘yxatdan o‘tish yakunlandi → Asosiy menyu
-```
-
-Tasdiqlash sahifasida har bir maydonni alohida o‘zgartirish mumkin — foydalanuvchi tegishli inline tugmani bosib, faqat kerakli qadamga qaytadi.
+- ➕ Yangi konkurs yaratish (nom, tavsif, min referal, sovg'a)
+- ▶️/⏹ Boshlash/to'xtatish
+- 👥 Ishtirokchilar ro'yxati (shart bajarganlari)
+- 🎲 Random g'olib tanlash
+- ✏️ Referal balini qo'lda sozlash (foydalanuvchi ID bo'yicha)
+- Targ'ibot bo'limi: aktiv konkurs bo'lsa — konkurs rejimida ko'rsatadi
 
 ---
 
-## 🛡️ Obuna tekshirish (SubscriptionMiddleware)
+## 6. 🔘 Tugmalar Tizimi
 
-Bot har bir xabar va callback qo‘yida barcha faol kanallarni tekshiradi:
+**Fayl:** `app/handlers/admins/buttons/button_admin.py` (yangi)
 
-- **Ochiq kanallar** — `get_chat_member` orqali a'zolik aniqlanadi
-- **Yopiq kanallar** — `ChannelJoin` jadvalidagi faol yozuv tekshiriladi
-- Obuna bo‘lmagan kanallar uchun "Obuna bo‘lish" tugmasi ko‘rsatiladi
-- Adminlar ushbu tekshiruvdan o‘tkazilmaydi
-
----
-
-## 🔑 Referal tizimi
-
-Har bir foydalanuvchining shaxsiy havolasi `https://t.me/<bot>?start=<user_id>` ko‘rinishida bo‘ladi. Yangi foydalanuvchi bu havola orqali kelganda `referred_by` maydoni saqlanadi va referal ball yig‘ila boshlaydi.
-
----
-
-## 🔐 Admin panel
-
-`/panel` komandasi orqali adminlar quyidagi imkoniyatlardan foydalanadi:
-
-- **📢 Reklama** — reklama blokini boshqarish
-- **📨 Xabar yuborish** — barcha foydalanuvchilarga broadcast
-- **📡 Kanallar** — majburiy obuna kanallarini qo‘shish, ko‘rish, o‘chirish
+Admin Panel → 🔘 Tugmalar orqali:
+- ➕ Yangi tugma yaratish:
+  - **🔗 URL havola** — bosganda veb saytga o'tadi
+  - **💬 Xabar matni** — bosganda foydalanuvchiga matn yuboriladi
+- 📋 Barcha tugmalar ro'yxati
+- 🟢/🔴 Yoqish/o'chirish
+- 🗑 O'chirish
+- 📢 **Ro'yxatdan o'tmaganlarga xabar yuborish** (broadcast)
+- 🎯 Referal ball sozlash (qisqa yo'l)
 
 ---
 
-## 🚀 Ishga tushirish
+## 7. ⚙️ Sozlamalar Panel
 
-### 1. Repozitoriyani klonlash
+**Fayl:** `app/handlers/admins/settings_admin.py` (yangi)
 
+Admin Panel → ⚙️ Sozlamalar:
+- 🎯 Referal ball (har referal uchun N ball)
+- 📝 Test maks. savollar soni
+- ⏱ Test savol vaqti (soniya)
+- 🗞 Targ'ibot bo'limi matni
+- 👋 Ro'yxatdan o'tmagan uchun xabar
+- 📋 Barchasini ko'rish (bir ekranda)
+
+---
+
+## 8. 📢 Broadcast Tizimi
+
+**Fayl:** `app/handlers/admins/buttons/button_admin.py`
+
+- Faqat **ro'yxatdan o'tmaganlar**ga xabar yuborish
+- Progress ko'rsatiladi (har 20 ta da yangilanadi)
+- Natija: muvaffaqiyatli/xato/jami statistika
+
+---
+
+## Migration
+
+Yangi jadvallarni yaratish uchun:
 ```bash
-git clone <repo_url>
-cd yoshkitobchibot
+python3 migrate.py
 ```
 
-### 2. Virtual muhit yaratish
-
-```bash
-python -m venv .venv
-source .venv/bin/activate        # Linux / macOS
-.venv\Scripts\activate           # Windows
-```
-
-### 3. Kutubxonalarni o‘rnatish
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. `.env` faylini sozlash
-
-```env
-BOT_TOKEN=1234567890:AABBccDDeeFFggHHiiJJ
-ADMINS=123456789,987654321
-ip=0.0.0.0
-```
-
-| o‘zgaruvchi | Tavsif |
-|---|---|
-| `BOT_TOKEN` | BotFather dan olingan token |
-| `ADMINS` | Admin Telegram ID lari (vergul bilan) |
-| `ip` | Server IP manzili (agar kerak bo‘lsa) |
-
-### 5. Hudud ma'lumotlarini yangilash (ixtiyoriy)
-
-`app/data/` papkasidagi `regions.json`, `districts.json`, `villages.json` fayllari allaqachon to‘ldirilgan. Agar yangilash kerak bo‘lsa:
-
-```bash
-python api.py
-cp -r data_hududlar/regions.json   app/data/
-cp -r data_hududlar/districts.json app/data/
-cp -r data_hududlar/mfy.json       app/data/villages.json
-```
-
-### 6. Botni ishga tushirish
-
-```bash
-python main.py
-```
+Yaratiladi:
+- `bot_settings` — sozlamalar jadvali
+- `custom_buttons` — tugmalar jadvali
 
 ---
 
-## 📦 Asosiy kutubxonalar
+## Admin Panel Yangi Ko'rinishi
 
 ```
-aiogram==3.21.0
-SQLAlchemy==2.0.50
-aiosqlite==0.22.0
-environs==15.0.1
-requests==2.34.2
-pydantic==2.11.10
+📊 Statistika  |  📨 Xabar yuborish
+🔐 Kanallar    |  📋 Testlar ro'yxati
+👥 Foydalanuvchilar  |  🏆 Konkurs
+🔘 Tugmalar    |  ⚙️ Sozlamalar
 ```
-
----
-
-## 📄 Litsenziya
-
-Ushbu loyiha ochiq manbali. Istalgan maqsad uchun erkin foydalanishingiz mumkin.

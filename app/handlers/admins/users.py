@@ -7,6 +7,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.filters.is_admin import IsAdmin
+from app.keyboards.admin_flow import CANCEL_TEXT, cancel_reply_keyboard
 from app.keyboards.reply import admin_menu
 from data.config import ADMINS
 from database.database import session_maker
@@ -26,7 +27,7 @@ DIRECTION_LABELS = {
 }
 
 CONTEST_LABELS = {
-    ContestType.YOSH_KITOBXON_2026: '“Yosh kitobchi” - 2026 yoz',
+    ContestType.YOSH_KITOBXON_2026: "“Yosh kitobchi” - 2026 yoz",
 }
 
 PAGE_SIZE = 10
@@ -36,6 +37,7 @@ PAGE_SIZE = 10
 # STATES
 # =========================================================
 
+
 class UserSearchState(StatesGroup):
     waiting_query = State()
 
@@ -43,6 +45,7 @@ class UserSearchState(StatesGroup):
 # =========================================================
 # HELPERS
 # =========================================================
+
 
 def user_detail_text(user, referrals_total: int, referrals_registered: int) -> str:
     direction = DIRECTION_LABELS.get(user.direction, "—")
@@ -56,35 +59,28 @@ def user_detail_text(user, referrals_total: int, referrals_registered: int) -> s
         "━━━━━━━━━━━━━━━━━━━━━\n"
         "👤 <b>FOYDALANUVCHI MA'LUMOTLARI</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
-
         "🪪 <b>Shaxsiy ma'lumotlar</b>\n"
         f"  <b>Telegram ID:</b> <code>{user.user_id}</code>\n"
         f"  <b>F.I.Sh.:</b> {user.full_name or '—'}\n"
         f"  <b>Tug‘ilgan sana:</b> {user.birth_date or '—'}\n"
         f"  <b>Telefon:</b> <code>{user.phone_number or '—'}</code>\n\n"
-
         "📍 <b>Manzil</b>\n"
         f"  <b>Viloyat:</b> {user.region or '—'}\n"
         f"  <b>Tuman:</b> {user.district or '—'}\n"
         f"  <b>Mahalla:</b> {user.neighborhood or '—'}\n\n"
-
         "🏫 <b>Ish / o‘qish joyi</b>\n"
         f"  {user.workplace or '—'}\n\n"
-
         "🏆 <b>Tanlov ma'lumotlari</b>\n"
         f"  <b>Tanlov:</b> {contest}\n"
         f"  <b>Yo‘nalish:</b> {direction}\n\n"
-
         "📊 <b>Balllar</b>\n"
         f"  <b>Umumiy:</b> {user.total_score} ball\n"
         f"  ├ Test ballari: {user.test_score}\n"
         f"  └ Referal ballari: {user.referral_score}\n\n"
-
         "👥 <b>Referal statistikasi</b>\n"
         f"  <b>Kim taklif qilgan:</b> {ref_by}\n"
         f"  <b>U taklif qilganlar:</b> {referrals_total} ta\n"
         f"  └ Ro‘yxatdan o‘tganlari: {referrals_registered} ta (ball berilgan)\n\n"
-
         f"📌 <b>Holat:</b> {status}\n"
         f"📅 <b>Qo‘shilgan:</b> {user.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n"
         "━━━━━━━━━━━━━━━━━━━━━"
@@ -129,16 +125,10 @@ def users_list_keyboard(
     # --- Pagination ---
     nav_row = []
     if page > 0:
-        nav_row.append(
-            ("⬅️", f"admup:{page - 1}:{filter_mode}:{search_query[:20]}")
-        )
-    nav_row.append(
-        ("📄 " + str(page + 1), "admup_noop")
-    )
+        nav_row.append(("⬅️", f"admup:{page - 1}:{filter_mode}:{search_query[:20]}"))
+    nav_row.append(("📄 " + str(page + 1), "admup_noop"))
     if (page + 1) * PAGE_SIZE < total:
-        nav_row.append(
-            ("➡️", f"admup:{page + 1}:{filter_mode}:{search_query[:20]}")
-        )
+        nav_row.append(("➡️", f"admup:{page + 1}:{filter_mode}:{search_query[:20]}"))
     for text, cb in nav_row:
         builder.button(text=text, callback_data=cb)
     builder.adjust(len(nav_row))
@@ -151,7 +141,9 @@ def users_list_keyboard(
     return builder.as_markup()
 
 
-def user_detail_keyboard(user_id: int, back_page: int = 0, filter_mode: str = "all", search_query: str = ""):
+def user_detail_keyboard(
+    user_id: int, back_page: int = 0, filter_mode: str = "all", search_query: str = ""
+):
     builder = InlineKeyboardBuilder()
     builder.button(
         text="💬 Xabar yuborish",
@@ -175,17 +167,20 @@ async def get_filtered_users(service: UserService, filter_mode: str) -> list:
         return await service.get_all_users()
 
 
-def build_list_text(users: list, page: int, total: int, filter_mode: str, search_query: str = "") -> str:
+def build_list_text(
+    users: list, page: int, total: int, filter_mode: str, search_query: str = ""
+) -> str:
     start = page * PAGE_SIZE
     end = min(start + PAGE_SIZE, total)
 
-    filter_names = {"all": "Barchasi", "reg": "✅ Ro‘yxatdan o‘tganlar", "unreg": "⏳ o‘tmaganlar"}
+    filter_names = {
+        "all": "Barchasi",
+        "reg": "✅ Ro‘yxatdan o‘tganlar",
+        "unreg": "⏳ o‘tmaganlar",
+    }
     header = filter_names.get(filter_mode, "Barchasi")
 
-    text = (
-        f"👥 <b>Foydalanuvchilar — {header}</b>\n\n"
-        f"📊 Jami: <b>{total}</b> ta"
-    )
+    text = f"👥 <b>Foydalanuvchilar — {header}</b>\n\n📊 Jami: <b>{total}</b> ta"
     if total > 0:
         text += f" | Ko‘rsatilmoqda: <b>{start + 1}–{end}</b>"
     if search_query:
@@ -196,6 +191,7 @@ def build_list_text(users: list, page: int, total: int, filter_mode: str, search
 # =========================================================
 # ENTRY — "👥 Foydalanuvchilar" tugmasi
 # =========================================================
+
 
 @router.message(F.text == "👥 Foydalanuvchilar", IsAdmin(admin_ids=ADMINS))
 async def admin_users_menu(message: Message, state: FSMContext):
@@ -228,6 +224,7 @@ async def admin_users_menu(message: Message, state: FSMContext):
 # FILTER
 # =========================================================
 
+
 @router.callback_query(F.data.startswith("admuf:"), IsAdmin(admin_ids=ADMINS))
 async def admin_users_filter(callback: CallbackQuery):
     parts = callback.data.split(":", 3)
@@ -240,12 +237,14 @@ async def admin_users_filter(callback: CallbackQuery):
         users = await get_filtered_users(service, filter_mode)
 
     total = len(users)
-    page_users = users[page * PAGE_SIZE: (page + 1) * PAGE_SIZE]
+    page_users = users[page * PAGE_SIZE : (page + 1) * PAGE_SIZE]
 
     await callback.message.edit_text(
         build_list_text(users, page, total, filter_mode, search_query),
         parse_mode="HTML",
-        reply_markup=users_list_keyboard(page_users, page, total, search_query, filter_mode),
+        reply_markup=users_list_keyboard(
+            page_users, page, total, search_query, filter_mode
+        ),
     )
     await callback.answer()
 
@@ -253,6 +252,7 @@ async def admin_users_filter(callback: CallbackQuery):
 # =========================================================
 # PAGINATION
 # =========================================================
+
 
 @router.callback_query(F.data == "admup_noop", IsAdmin(admin_ids=ADMINS))
 async def noop(callback: CallbackQuery):
@@ -275,12 +275,14 @@ async def admin_users_page(callback: CallbackQuery):
 
     total = len(users)
     start = page * PAGE_SIZE
-    page_users = users[start: start + PAGE_SIZE]
+    page_users = users[start : start + PAGE_SIZE]
 
     await callback.message.edit_text(
         build_list_text(users, page, total, filter_mode, search_query),
         parse_mode="HTML",
-        reply_markup=users_list_keyboard(page_users, page, total, search_query, filter_mode),
+        reply_markup=users_list_keyboard(
+            page_users, page, total, search_query, filter_mode
+        ),
     )
     await callback.answer()
 
@@ -288,6 +290,7 @@ async def admin_users_page(callback: CallbackQuery):
 # =========================================================
 # USER DETAIL
 # =========================================================
+
 
 @router.callback_query(F.data.startswith("admuv:"), IsAdmin(admin_ids=ADMINS))
 async def admin_user_detail(callback: CallbackQuery):
@@ -310,7 +313,9 @@ async def admin_user_detail(callback: CallbackQuery):
     await callback.message.edit_text(
         user_detail_text(user, referrals_total, referrals_registered),
         parse_mode="HTML",
-        reply_markup=user_detail_keyboard(user_id, back_page, filter_mode, search_query),
+        reply_markup=user_detail_keyboard(
+            user_id, back_page, filter_mode, search_query
+        ),
     )
     await callback.answer()
 
@@ -319,6 +324,7 @@ async def admin_user_detail(callback: CallbackQuery):
 # MESSAGE TO USER — adminga user_id ga xabar yuborish
 # =========================================================
 
+
 @router.callback_query(F.data.startswith("admum:"), IsAdmin(admin_ids=ADMINS))
 async def admin_message_to_user_start(callback: CallbackQuery, state: FSMContext):
     user_id = int(callback.data.split(":")[1])
@@ -326,9 +332,9 @@ async def admin_message_to_user_start(callback: CallbackQuery, state: FSMContext
     await state.set_state(UserSearchState.waiting_query)
     await callback.message.answer(
         f"✉️ <b>Foydalanuvchiga xabar</b>\n\n"
-        f"<code>{user_id}</code> ga yuboriladigan xabarni kiriting:\n"
-        f"(Bekor qilish uchun /cancel)",
+        f"<code>{user_id}</code> ga yuboriladigan xabarni kiriting:",
         parse_mode="HTML",
+        reply_markup=cancel_reply_keyboard(),
     )
     await callback.answer()
 
@@ -336,6 +342,7 @@ async def admin_message_to_user_start(callback: CallbackQuery, state: FSMContext
 # =========================================================
 # SEARCH — qidirish
 # =========================================================
+
 
 @router.callback_query(F.data == "admus", IsAdmin(admin_ids=ADMINS))
 async def admin_users_search_start(callback: CallbackQuery, state: FSMContext):
@@ -346,16 +353,16 @@ async def admin_users_search_start(callback: CallbackQuery, state: FSMContext):
         "Quyidagilardan birini kiriting:\n"
         "• <b>Ism</b> yoki ism qismi\n"
         "• <b>Telefon raqam</b>\n"
-        "• <b>Telegram ID</b> (raqam)\n\n"
-        "(Bekor qilish: /cancel)",
+        "• <b>Telegram ID</b> (raqam)",
         parse_mode="HTML",
+        reply_markup=cancel_reply_keyboard(),
     )
     await callback.answer()
 
 
 @router.message(UserSearchState.waiting_query, IsAdmin(admin_ids=ADMINS))
 async def admin_users_search_or_message(message: Message, state: FSMContext):
-    if message.text and message.text.strip() == "/cancel":
+    if message.text and message.text.strip() in {"/cancel", CANCEL_TEXT}:
         await state.clear()
         return await message.answer("❌ Bekor qilindi.", reply_markup=admin_menu())
 
@@ -403,10 +410,7 @@ async def admin_users_search_or_message(message: Message, state: FSMContext):
             parse_mode="HTML",
         )
 
-    text = (
-        f"🔍 <b>Qidiruv:</b> <i>{query}</i>\n"
-        f"📊 Topildi: <b>{total}</b> ta"
-    )
+    text = f"🔍 <b>Qidiruv:</b> <i>{query}</i>\n📊 Topildi: <b>{total}</b> ta"
 
     await message.answer(
         text,
@@ -418,6 +422,7 @@ async def admin_users_search_or_message(message: Message, state: FSMContext):
 # =========================================================
 # BACK
 # =========================================================
+
 
 @router.callback_query(F.data == "admub", IsAdmin(admin_ids=ADMINS))
 async def admin_users_back(callback: CallbackQuery):

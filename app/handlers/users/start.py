@@ -8,8 +8,10 @@ from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.services.user_service import UserService
+from data.config import ADMINS
 
 from app.keyboards.reply import (
+    admin_menu,
     start_keyboard,
     main_menu_keyboard,
 )
@@ -56,6 +58,12 @@ async def start_handler(
             user_id=message.from_user.id,
             referred_by=referred_by,
         )
+
+    # if message.from_user.id in ADMINS:
+    #     return await message.answer(
+    #         text="<b>Admin panel</b>\nKerakli bo'limni tanlang.",
+    #         reply_markup=admin_menu(),
+    #     )
 
     # =========================================
     # REGISTER CHECK
@@ -107,6 +115,13 @@ async def check_subscription_callback(
 
     if not user:
         user = await service.create_user(user_id=callback.from_user.id)
+
+    if callback.from_user.id in ADMINS:
+        await callback.message.answer(
+            text="<b>Admin panel</b>\nKerakli bo'limni tanlang.",
+            reply_markup=admin_menu(),
+        )
+        return
 
     if not user.is_registered:
         await callback.message.answer(

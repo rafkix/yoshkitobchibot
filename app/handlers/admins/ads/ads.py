@@ -290,14 +290,14 @@ async def delete_ad_menu(callback: CallbackQuery):
 
     if not ads:
         await callback.message.edit_text(
-            "🗑 O‘chirish uchun reklama topilmadi.",
+            "🗑 o‘chirish uchun reklama topilmadi.",
             reply_markup=admin_ads(),
         )
         await callback.answer()
         return
 
     await callback.message.edit_text(
-        "🗑 <b>O‘chirish uchun reklamani tanlang</b>",
+        "🗑 <b>o‘chirish uchun reklamani tanlang</b>",
         parse_mode="HTML",
         reply_markup=delete_ads_keyboard(ads),
     )
