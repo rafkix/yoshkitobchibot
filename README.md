@@ -1,3 +1,6 @@
+Mana loyihangiz uchun barcha bo'limlarni, vizual sxemalarni, `mermaid` diagrammasini va grafik interfeyslarni o'z ichiga olgan **to'liq professional `README.md**` fayli. Buni to'g'ridan-to'g'ri loyihangizning asosiy katalogiga joylashtirishingiz mumkin:
+
+```markdown
 # 🤖 yoshkitobchibot — Tizim Yangilanishlari & Arxitektura
 
 <p align="center">
@@ -8,75 +11,139 @@
 
 ---
 
-## 🚀 Tizimdagi Yangi Funksiyalar
+## 🚀 Yangi Funksiyalar va Konfiguratsiya
 
-### 1. 🎯 Dinamik Referal Ball Tizimi
+### 📌 1. Dinamik Referal Ball Tizimi
 * **Fayl:** `database/services/settings_service.py` 🆕
-* **Imkoniyat:** Taklif qilingan va muvaffaqiyatli ro'yxatdan o'tgan foydalanuvchi uchun beriladigan ball endi to'liq **dinamik** ko'rinishga keltirildi.
-* **Boshqaruv:** `Admin Panel ➡️ ⚙️ Sozlamalar ➡️ Referal ball` yoki tezkor yo'lak orqali sozlanadi.
-* **Logika:** `user_service.py` ichidagi `complete_registration()` funksiyasi endi statik qiymat emas, balki `SettingsService` orqali bazadagi joriy ballni o'qiydi.
-* **Foydalanuvchi interfeysi:** Targ'ibot sahifasida joriy ball qiymati (`+N ball`) real vaqtda yangilanib turadi.
+* **Logika:** `user_service.py` ichidagi `complete_registration()` funksiyasi endi statik qiymat emas, balki `SettingsService` orqali bazadagi joriy ballni dinamik o'qiydi.
+* **UI Ekrani:** Foydalanuvchining **Targ'ibot** sahifasida joriy ball qiymati (`+N ball`) real vaqtda yangilanib turadi.
 
-### 2. 👤 Profil ma'lumotlarini tahrirlash
+```mermaid
+graph LR
+    A[Foydalanuvchi Ro'yxatdan O'tdi] --> B(SettingsService)
+    B --> C{Bazadagi Ballni O'qish}
+    C -->|Default: 1 Ball| D[Referalga Ball Qo'shish]
+    C -->|Admin O'zgartirgan: N Ball| D
+
+```
+
+### 📌 2. Profil Ma'lumotlarini Tahrirlash
+
 * **Fayl:** `app/handlers/users/menu.py` 🔄
-* **Imkoniyat:** Profil menyusiga interaktiv `✏️ Ma'lumotlarni o'zgartirish` inline-tugmasi qo'shildi.
-* Foydalanuvchilar quyidagi ma'lumotlarni to'liq qayta tahrirlashlari mumkin:
-  * 📝 **F.I.Sh.** (To'liq ism-sharif)
-  * 🏢 **Ish/o'qish joyi** (Muassasa nomi)
-  * 📍 **Mahalla** (Yashash hududi)
+* **Imkoniyat:** Profil menyusiga yangi `✏️ Ma'lumotlarni o'zgartirish` inline-tugmasi qo'shildi (`profile_edit_keyboard()`).
+* **Tahrirlash bloklari:**
+* 👤 **F.I.Sh.** (To'liq ism-sharif)
+* 🏢 **Ish/o'qish joyi** (Muassasa nomi)
+* 📍 **Mahalla** (Yashash hududi)
 
-### 3. 🧪 Kengaytirilgan Test Boshqaruvi
+
+
+### 📌 3. Kengaytirilgan Test Boshqaruvi
+
 * **Fayl:** `app/handlers/admins/tests/test_admin.py` 🆕
 * **Admin panel orqali to'liq nazorat:**
-  * `✅ / 🔴` **Status Toggle:** Testlarni bir marta bosish bilan yoqish yoki o'chirish.
-  * `🗑 Sessiyalarni tozalash:` Foydalanuvchilar testni qaytadan topshira olishlari uchun eski urinishlarni o'chirish.
-  * `📊 Statistika:` Har bir test bo'yicha jami boshlangan va muvaffaqiyatli tugatilgan sessiyalar hisoboti.
-  * `⚙️ Dinamik Limitlar:` Maksimal savollar soni (*Default: 40 ta*) va har bir savol uchun vaqt taymeri (*Default: 90 soniya*) `BotSettings` jadvali orqali dinamik boshqariladi.
+* `✅ / 🔴` **Status Toggle:** Testlarni bir marta bosish bilan yoqish yoki o'chirish.
+* `🗑 Sessiyalarni tozalash:` Foydalanuvchilar testni qaytadan topshira olishlari uchun eski urinishlarni o'chirish.
+* `📊 Statistika:` Har bir test bo'yicha jami boshlangan va muvaffaqiyatli tugatilgan sessiyalar hisoboti.
 
-### 4. 🏆 Konkurs (Musobaqa) Moduli
+
+
+### 📌 4. Konkurs (Musobaqa) Moduli
+
 * **Fayl:** `app/handlers/admins/contest.py` 🔄
-* **Yaratish va Boshqaruv:** Yangi konkurs yaratish (nomi, tavsifi, minimal referal limiti, sovg'alar) hamda start (`▶️`) / stop (`⏹`) tugmalari.
-* **G'oliblar:** Shartlarni bajargan ishtirokchilar ro'yxatidan adolatli `🎲 Random` (tasodifiy) g'olib aniqlash algoritmi.
-* **Korreksiya:** Foydalanuvchining referal ballarini ID bo'yicha admin panelidan qo'lda sozlash imkoniyati.
+* **Boshqaruv:** Yangi konkurs yaratish (nomi, tavsifi, min. referal) hamda start (`▶️`) / stop (`⏹`) tugmalari.
+* **Algoritm:** Shartlarni bajargan ishtirokchilar ro'yxatidan adolatli `🎲 Random` g'olib aniqlash tizimi.
 * **Avtomatlashtirish:** Aktiv konkurs bo'lganda, foydalanuvchining **Targ'ibot** bo'limi avtomatik ravishda **Konkurs Rejimi**ga o'tadi.
 
-### 5. 🔘 Dinamik Tugmalar Tizimi
-* **Fayl:** `app/handlers/admins/buttons/button_admin.py` 🆕
-* **Imkoniyat:** Bot ichida admin tomonidan istalgan vaqtda yangi tugmalar yaratish:
-  * `🔗 URL Havola` — Tashqi veb-saytlarga yo'naltiruvchi tugma.
-  * `💬 Xabar matni` — Bosilganda foydalanuvchiga bot nomidan maxsus matn qaytaruvchi tugma.
-* Tugmalarni yoqish/o'chirish (`🟢/🔴`) va to'liq o'chirish (`🗑`) paneli.
+### 📌 5. Dinamik Tugmalar & Maqsadli Broadcast
 
-### 6. 📢 Maqsadli Broadcast (Target-Xabar)
-* **Fayl:** `app/handlers/admins/buttons/button_admin.py`
-* **Target:** Botga start bosgan, biroq hali **ro'yxatdan o'tmagan** foydalanuvchilarga yo'naltirilgan xabarnomalar.
-* **Progress Tracking:** Har 20 ta yuborilgan xabarda admin ekrani real vaqtda yangilanadi.
-* **Natija:** Muvaffaqiyatli yetkazilganlar, xatoliklar va jami statistika yakunda taqdim etiladi.
+* **Fayl:** `app/handlers/admins/buttons/button_admin.py` 🆕
+* **Dinamik Tugma:** Bot ichida admin tomonidan `🔗 URL Havola` yoki `💬 Xabar matni` tugmalarini yaratish va boshqarish (`🟢/🔴`).
+* **Target-Broadcast:** Botga start bosgan, biroq hali **ro'yxatdan o'tmagan** foydalanuvchilarga yo'naltirilgan xabarnomalar.
+* **Progress Tracking:** Har 20 ta yuborilgan xabarda admin ekrani real vaqtda yangilanadi va yakuniy statistika chiqariladi.
 
 ---
 
 ## 📁 Loyiha Strukturasi (Handlers)
 
-Kod bazasi modullilik tamoyili asosida quyidagicha tartiblandi:
+Kod bazasi modullilik va tozalik (Clean Architecture) prinsiplari asosida quyidagicha shakllantirildi:
 
-```text
-app/handlers/
-├── 👤 users/
-│   ├── start.py          # Botni ishga tushirish va referal triggerlari
-│   ├── register.py       # Bosqichma-bosqich ro'yxatdan o'tish logikasi
-│   ├── menu.py           # Profil, reyting va targ'ibot menyulari
-│   ├── test.py           # Test topshirish va taymer logikasi
-│   ├── help.py           # Yo'riqnoma va ko'mak
-│   └── prizes.py         # Sovrinlar ro'yxati
-│
-└── 👑 admins/
-    ├── main_admin.py     # Asosiy boshqaruv paneli
-    ├── users.py          # Foydalanuvchilar bazasi va qidiruv
-    ├── contest.py        # Konkurs va Randomizer moduli
-    ├── settings_admin.py # Tizim va konfiguratsiya sozlamalari 🆕
-    ├── ads/              # Reklama menejmenti
-    ├── channels/         # Majburiy obunalar nazorati
-    ├── tests/
-    │   └── test_admin.py # Test sozlamalari va statistikasi 🆕
-    └── buttons/
-        └── button_admin.py # Dinamik tugmalar va target-broadcast 🆕
+```🗂 Loyiha Katalogi
+app/
+└── handlers/
+    ├── 👤 users/
+    │   ├── 🔹 start.py         # Botni ishga tushirish & referal triggeri
+    │   ├── 🔹 register.py      # Bosqichma-bosqich ro'yxatdan o'tish
+    │   ├── 🔹 menu.py          # Profil, reyting va targ'ibot menyulari
+    │   ├── 🔹 test.py          # Test topshirish va taymer logikasi
+    │   ├── 🔹 help.py          # Yo'riqnoma va ko'mak
+    │   └── 🔹 prizes.py        # Sovrinlar ro'yxati
+    │
+    └── 👑 admins/
+        ├── 🔸 main_admin.py    # Asosiy admin boshqaruv paneli
+        ├── 🔸 users.py         # Foydalanuvchilar bazasi va qidiruv
+        ├── 🔸 contest.py       # Konkurs va Randomizer moduli
+        ├── 🔸 settings_admin.py# Tizim sozlamalari paneli 🆕
+        ├── 🔸 ads/             # Reklama menejmenti
+        ├── 🔸 channels/        # Majburiy obunalar nazorati
+        ├── 📁 tests/
+        │   └── 🔹 test_admin.py# Test sozlamalari va statistikasi 🆕
+        └── 📁 buttons/
+            └── 🔹 button_admin.py # Dinamik tugmalar va target-broadcast 🆕
+
+```
+
+---
+
+## ⚙️ Markazlashtirilgan Sozlamalar
+
+`Admin Panel ➡️ ⚙️ Sozlamalar` bo'limidagi sozlamalarning vizual ko'rinishi:
+
+```⚙️ Tizim Konfiguratsiyasi (BotSettings)
+┌──────────────────────────────┬──────────────────────────────┐
+│  🎯 Referal Balli            │  📝 Maksimal Savollar        │
+│  └─ Standart: 1 ball         │  └─ Standart: 40 ta          │
+├──────────────────────────────┼──────────────────────────────┤
+│  ⏱ Savol Taymeri            │  🗞 Targ'ibot Matni          │
+│  └─ Standart: 90 soniya      │  └─ Maxsus kontent (HTML)    │
+└──────────────────────────────┴──────────────────────────────┘
+
+```
+
+---
+
+## 🗄 Ma'lumotlar Bazasi Migratsiyasi
+
+Yangi jadvallarni (`bot_settings`, `custom_buttons`) tizimga xavfsiz qo'shish uchun quyidagi buyruqni ishga tushiring:
+
+```bash
+python3 migrate.py
+
+```
+
+> ⚠️ **Xavfsizlik kafolati:** Migratsiya mavjud ma'lumotlarga va foydalanuvchilar bazasiga zarar yetkazmaydi, faqat yangi strukturalarni tizimga integratsiya qiladi.
+
+---
+
+## 🖥 Admin Panel Interfeysi (UI Layout)
+
+Adminlar uchun boshqaruv klaviaturasi interfeysi grafik ko'rinishda quyidagicha loyihalashtirildi:
+
+```🕹 Admin Panel Boshqaruv Ekranlari
+┌─────────────────────────────────────────────────────────────┐
+│                       📊 STATISTIKA                         │
+├──────────────────────────────┬──────────────────────────────┤
+│  🔐 Kanallar                 │  📋 Testlar Ro'yxati         │
+├──────────────────────────────┼──────────────────────────────┤
+│  👥 Foydalanuvchilar         │  🏆 Konkurs Moduli           │
+├──────────────────────────────┼──────────────────────────────┤
+│  🔘 Tugmalar Boshqaruvi      │  ⚙️ Tizim Sozlamalari        │
+├──────────────────────────────┴──────────────────────────────┤
+│                     📨 XABAR YUBORISH (ADS)                 │
+└─────────────────────────────────────────────────────────────┘
+
+```
+
+```
+
+```
