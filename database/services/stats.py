@@ -55,3 +55,19 @@ class StatService:
                 f"❌ Yangi foydalanuvchilar sonini olishda xatolik (days={days}): {e}"
             )
             return 0
+
+    async def count_new_registered_users_since(self, days: int) -> int:
+        """So‘nggi N kun ichida ro‘yxatdan o‘tishni yakunlagan foydalanuvchilar soni."""
+        try:
+            threshold = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=days)
+            result = await self.session.execute(
+                select(func.count(User.user_id)).where(
+                    User.created_at >= threshold, User.is_registered.is_(True)
+                )
+            )
+            return int(result.scalar_one() or 0)
+        except Exception as e:
+            logger.error(
+                f"❌ Yangi ro‘yxatdan o‘tganlar sonini olishda xatolik (days={days}): {e}"
+            )
+            return 0

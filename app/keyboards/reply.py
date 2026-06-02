@@ -206,10 +206,6 @@ def admin_menu() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="👥 Foydalanuvchilar"),
                 KeyboardButton(text="🏆 Konkurs"),
             ],
-            [
-                KeyboardButton(text="🔘 Tugmalar"),
-                KeyboardButton(text="⚙️ Sozlamalar"),
-            ],
         ],
         resize_keyboard=True,
         input_field_placeholder="Admin panel",
