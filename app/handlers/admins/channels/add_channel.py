@@ -12,7 +12,7 @@ from app.keyboards.reply import admin_menu
 from app.states.add_channel import AddChannelState
 from data.config import ADMINS
 from database.database import session_maker
-from database.services.channel_service import add_channel
+from database.services.channel_service import ChannelService
 
 router = Router()
 
@@ -323,7 +323,7 @@ async def process_telegram_source(message: Message, state: FSMContext):
         return
 
     async with session_maker() as session:
-        channel = await add_channel(
+        channel = await ChannelService.add_channel(
             session=session,
             title=title,
             telegram_chat_id=telegram_chat_id,
@@ -386,7 +386,7 @@ async def process_private_link(message: Message, state: FSMContext):
         return
 
     async with session_maker() as session:
-        channel = await add_channel(
+        channel = await ChannelService.add_channel(
             session=session,
             title=title,
             telegram_chat_id=telegram_chat_id,
@@ -468,7 +468,7 @@ async def process_external_link_title(message: Message, state: FSMContext):
         return
 
     async with session_maker() as session:
-        channel = await add_channel(
+        channel = await ChannelService.add_channel(
             session=session,
             title=title,
             telegram_chat_id=None,

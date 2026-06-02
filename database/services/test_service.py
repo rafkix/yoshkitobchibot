@@ -1,15 +1,21 @@
+# database/services/test_service.py
+
 import random
+import logging
 from datetime import datetime, UTC, timedelta
-
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from database.models import Question, Test, TestSession
 from app.utils.rasch import rasch_ability, theta_to_score
-from database.services.settings_service import SettingsService
 
-QUESTIONS_PER_SESSION = 40  # default (sozlamalardan o'zgartiriladi)
-SECONDS_PER_QUESTION = 90   # default (sozlamalardan o'zgartiriladi)
+logger = logging.getLogger(__name__)
+
+# Hardcoded defaults - test parametrlari
+TEST_MAX_QUESTIONS = 40
+TEST_SECONDS_PER_QUESTION = 90
+
+# FIX: handler fayli shu nomdan import qiladi
+SECONDS_PER_QUESTION = TEST_SECONDS_PER_QUESTION
 
 
 class TestService:
@@ -17,16 +23,17 @@ class TestService:
         self.session = session
 
     def _now(self) -> datetime:
-        return datetime.now(UTC)
+        return datetime.now(UTC).replace(tzinfo=None)
 
     def _as_utc(self, value: datetime | None) -> datetime | None:
         if value is None:
             return None
         if value.tzinfo is None:
-            return value.replace(tzinfo=UTC)
-        return value.astimezone(UTC)
+            return value
+        return value.astimezone(UTC).replace(tzinfo=None)
 
     def availability_status(self, test: Test) -> str:
+        """Test holatini vaqt kesimida aniqlash."""
         if not test.is_active:
             return "inactive"
 
@@ -36,186 +43,254 @@ class TestService:
 
         if starts_at and now < starts_at:
             return "not_started"
-        if ends_at and now >= ends_at:
+        if ends_at and now > ends_at:
             return "ended"
         return "available"
 
+    # FIX: handler chaqiradigan metod — availability_status wrapperi
     def is_available(self, test: Test) -> bool:
+        """Test hozir foydalanish uchun ochiqmi."""
         return self.availability_status(test) == "available"
 
-    async def get_available_tests(self) -> list[Test]:
-        result = await self.session.execute(
-            select(Test).where(Test.is_active.is_(True)).order_by(Test.id)
-        )
-        tests = result.scalars().all()
-        return [test for test in tests if self.is_available(test)]
-
+    # FIX: handler pick_test da ishlatadi
     def availability_text(self, test: Test) -> str:
-        starts_at = self._as_utc(test.starts_at)
-        ends_at = self._as_utc(test.ends_at)
+        """Test holati uchun o‘qilishi oson matn."""
+        status = self.availability_status(test)
+        if status == "not_started":
+            if test.starts_at:
+                return test.starts_at.strftime("%d.%m.%Y %H:%M")
+            return "Tez orada"
+        if status == "ended":
+            return "Tugagan"
+        if status == "inactive":
+            return "Nofaol"
+        return "Aktiv"
 
-        if starts_at and ends_at:
-            return (
-                f"{starts_at.strftime('%Y-%m-%d %H:%M')} dan "
-                f"{ends_at.strftime('%Y-%m-%d %H:%M')} gacha"
+    # FIX: handler test_list_show da chaqiradi
+    async def get_available_tests(self) -> list[Test]:
+        """Hozir foydalanish mumkin bo‘lgan testlar ro‘yxati."""
+        try:
+            result = await self.session.execute(
+                select(Test).where(Test.is_active.is_(True))
             )
-        if starts_at:
-            return f"{starts_at.strftime('%Y-%m-%d %H:%M')} dan boshlab"
-        if ends_at:
-            return f"{ends_at.strftime('%Y-%m-%d %H:%M')} gacha"
-        return "Doimiy ochiq"
+            tests = result.scalars().all()
+            return [t for t in tests if self.availability_status(t) == "available"]
+        except Exception as e:
+            logger.error(f"❌ Testlar ro‘yxatini olishda xatolik: {e}")
+            return []
 
-    # ─── Tugallangan sessiya bormi? ────────────────────────────────────────
     async def has_completed(self, user_id: int, test_id: int) -> bool:
-        result = await self.session.execute(
-            select(TestSession).where(
-                TestSession.user_id == user_id,
-                TestSession.test_id == test_id,
-                TestSession.is_completed.is_(True),
+        """Foydalanuvchi testni yakunlaganini tekshirish."""
+        try:
+            result = await self.session.execute(
+                select(TestSession).where(
+                    and_(
+                        TestSession.user_id == user_id,
+                        TestSession.test_id == test_id,
+                        TestSession.is_completed.is_(True),
+                    )
+                )
             )
-        )
-        return result.scalar_one_or_none() is not None
-
-    # ─── Vaqt tugaganmi? ───────────────────────────────────────────────────
-    def is_expired(self, session_obj: TestSession) -> bool:
-        if session_obj.is_completed:
+            return result.scalar_one_or_none() is not None
+        except Exception as e:
+            logger.error(f"❌ Sessiya tekshirishda xatolik (User: {user_id}): {e}")
             return False
-        deadline = session_obj.started_at.replace(tzinfo=UTC) + timedelta(
-            seconds=session_obj.duration_seconds
-        )
-        return datetime.now(UTC) >= deadline
 
-    # ─── Qolgan vaqt (soniya) ──────────────────────────────────────────────
-    def remaining_seconds(self, session_obj: TestSession) -> int:
-        deadline = session_obj.started_at.replace(tzinfo=UTC) + timedelta(
-            seconds=session_obj.duration_seconds
-        )
-        return max(0, int((deadline - datetime.now(UTC)).total_seconds()))
-
-    # ─── Sessiya olish yoki yangi ochish ───────────────────────────────────
     async def get_or_create_session(
         self, user_id: int, test_id: int
     ) -> tuple[TestSession | None, str]:
-        """
-        Qaytaradi: (session_obj, status)
-        status: "completed" | "expired" | "continued" | "new" | "no_questions" | "not_available"
-        """
-        test_result = await self.session.execute(select(Test).where(Test.id == test_id))
-        test = test_result.scalar_one_or_none()
-        if not test or not self.is_available(test):
-            return None, "not_available"
+        """Imtihon sessiyasini xavfsiz boshlash yoki faol sessiyani qaytarish."""
+        try:
+            result = await self.session.execute(select(Test).where(Test.id == test_id))
+            test = result.scalar_one_or_none()
+            if not test or self.availability_status(test) != "available":
+                return None, "not_available"
 
-        if await self.has_completed(user_id, test_id):
-            return None, "completed"
+            if await self.has_completed(user_id, test_id):
+                return None, "completed"
 
-        # Tugallanmagan sessiya bormi?
-        result = await self.session.execute(
-            select(TestSession).where(
-                TestSession.user_id == user_id,
-                TestSession.test_id == test_id,
-                TestSession.is_completed.is_(False),
+            # Mavjud faol sessiyani qidirish
+            active_res = await self.session.execute(
+                select(TestSession).where(
+                    and_(
+                        TestSession.user_id == user_id,
+                        TestSession.test_id == test_id,
+                        TestSession.is_completed.is_(False),
+                    )
+                )
             )
-        )
-        existing = result.scalar_one_or_none()
+            session_obj = active_res.scalar_one_or_none()
+            if session_obj:
+                if self.is_expired(session_obj):
+                    await self.finish_session(session_obj, user_id)
+                    return None, "completed"
+                # FIX: handler "continued" statusini tekshiradi
+                return session_obj, "continued"
 
-        if existing:
-            if self.is_expired(existing):
-                await self.finish_session(existing, user_id)
-                return None, "expired"
-            return existing, "continued"
-
-        # Yangi sessiya — shu testning savollarini yukla
-        q_result = await self.session.execute(
-            select(Question.id).where(
-                Question.test_id == test_id,
-                Question.is_active.is_(True),
+            # Savollar IDlarini yuklash va tasodifiy tanlash
+            q_res = await self.session.execute(
+                select(Question.id).where(Question.test_id == test_id)
             )
+            all_q_ids = list(q_res.scalars().all())
+            if not all_q_ids:
+                return None, "no_questions"
+
+            selected_ids = random.sample(
+                all_q_ids, min(len(all_q_ids), TEST_MAX_QUESTIONS)
+            )
+            duration = len(selected_ids) * TEST_SECONDS_PER_QUESTION
+
+            new_session = TestSession(
+                user_id=user_id,
+                test_id=test_id,
+                question_ids=selected_ids,
+                answers={},
+                duration_seconds=duration,
+                started_at=self._now(),
+                is_completed=False,
+            )
+            self.session.add(new_session)
+            await self.session.commit()
+            await self.session.refresh(new_session)
+            # FIX: handler "new" statusini tekshiradi
+            return new_session, "new"
+        except Exception as e:
+            await self.session.rollback()
+            logger.error(
+                f"❌ Sessiya yaratishda xatolik (User: {user_id}, Test: {test_id}): {e}"
+            )
+            return None, "error"
+
+    def is_expired(self, session_obj: TestSession) -> bool:
+        """Sessiyaga ajratilgan vaqt tugaganini tekshirish."""
+        now = self._now()
+        end_time = session_obj.started_at + timedelta(
+            seconds=session_obj.duration_seconds
         )
-        all_ids = [row[0] for row in q_result.fetchall()]
+        return now > end_time
 
-        if len(all_ids) == 0:
-            return None, "no_questions"
-
-        # Sozlamalardan dinamik qiymat olish
-        svc = SettingsService(self.session)
-        max_q = await svc.get_int("test_max_questions", QUESTIONS_PER_SESSION)
-        sec_q = await svc.get_int("test_seconds_per_question", SECONDS_PER_QUESTION)
-
-        # Mavjud savollar soni maksimaldan kam bo'lsa, hammasini oladi
-        questions_count = min(max_q, len(all_ids))
-        chosen = random.sample(all_ids, questions_count)
-
-        # Vaqtni savol soniga qarab hisoblash
-        duration = questions_count * sec_q
-
-        session_obj = TestSession(
-            user_id=user_id,
-            test_id=test_id,
-            question_ids=chosen,
-            answers={},
-            duration_seconds=duration,
-            started_at=datetime.now(UTC),
+    def remaining_seconds(self, session_obj: TestSession) -> int:
+        """Sessiya yakunlanishi uchun qolgan vaqtni hisoblash (soniyada)."""
+        now = self._now()
+        end_time = session_obj.started_at + timedelta(
+            seconds=session_obj.duration_seconds
         )
-        self.session.add(session_obj)
-        await self.session.commit()
-        await self.session.refresh(session_obj)
-        return session_obj, "new"
+        remaining = int((end_time - now).total_seconds())
+        return max(0, remaining)
 
-    # ─── Joriy savol ───────────────────────────────────────────────────────
     async def get_current_question(self, session_obj: TestSession) -> Question | None:
-        answered = len(session_obj.answers)
-        if answered >= len(session_obj.question_ids):
+        """Foydalanuvchi hali javob bermagan navbatdagi savolni yuklash."""
+        try:
+            for q_id in session_obj.question_ids:
+                if str(q_id) not in session_obj.answers:
+                    res = await self.session.execute(
+                        select(Question).where(Question.id == q_id)
+                    )
+                    return res.scalar_one_or_none()
             return None
-        q_id = session_obj.question_ids[answered]
-        result = await self.session.execute(select(Question).where(Question.id == q_id))
-        return result.scalar_one_or_none()
+        except Exception as e:
+            logger.error(
+                f"❌ Savolni yuklashda xatolik (Sessiya ID: {session_obj.id}): {e}"
+            )
+            return None
 
-    # ─── Javob saqlash ─────────────────────────────────────────────────────
     async def save_answer(
         self, session_obj: TestSession, question_id: int, answer: str
-    ):
-        session_obj.answers = {**session_obj.answers, str(question_id): answer}
-        await self.session.commit()
+    ) -> bool:
+        """Foydalanuvchi javobini JSONB formatida kesh xotiraga yozish."""
+        try:
+            if self.is_expired(session_obj) or session_obj.is_completed:
+                return False
 
-    # ─── Testni yakunlash va Rasch hisoblash ───────────────────────────────
+            current_answers = dict(session_obj.answers or {})
+            current_answers[str(question_id)] = answer.strip().upper()
+            session_obj.answers = current_answers
+
+            self.session.add(session_obj)
+            await self.session.commit()
+            return True
+        except Exception as e:
+            await self.session.rollback()
+            logger.error(
+                f"❌ Javobni saqlashda xatolik (Sessiya: {session_obj.id}): {e}"
+            )
+            return False
+
     async def finish_session(self, session_obj: TestSession, user_id: int) -> dict:
-        q_ids = session_obj.question_ids
-        q_result = await self.session.execute(
-            select(Question).where(Question.id.in_(q_ids))
-        )
-        questions = {q.id: q for q in q_result.scalars().all()}
+        """Sessiyani Rasch modeli asosida hisoblab, yakuniy natijani e'lon qilish."""
+        try:
+            if session_obj.is_completed:
+                return {
+                    "total": 0,
+                    "correct": 0,
+                    "answered": 0,
+                    "score": 0,
+                    "theta": 0.0,
+                    "status": "already_completed",
+                }
 
-        correct_list = []
-        difficulty_list = []
-        correct_count = 0
+            q_ids = session_obj.question_ids
+            q_result = await self.session.execute(
+                select(Question).where(Question.id.in_(q_ids))
+            )
+            questions = {q.id: q for q in q_result.scalars().all()}
 
-        for q_id in q_ids:
-            q = questions.get(q_id)
-            if not q:
-                continue
-            user_ans = session_obj.answers.get(str(q_id), "")
-            is_correct = user_ans.upper() == q.correct.upper()
-            correct_list.append(1.0 if is_correct else 0.0)
-            difficulty_list.append(q.difficulty)
-            if is_correct:
-                correct_count += 1
+            correct_list = []
+            difficulty_list = []
+            correct_count = 0
 
-        theta = rasch_ability(correct_list, difficulty_list)
-        score = theta_to_score(theta)
+            for q_id in q_ids:
+                q = questions.get(q_id)
+                if not q:
+                    continue
+                user_ans = session_obj.answers.get(str(q_id), "")
+                is_correct = user_ans.upper() == q.correct.upper()
 
-        session_obj.is_completed = True
-        session_obj.rasch_score = score
-        session_obj.completed_at = datetime.now(UTC)
-        await self.session.commit()
+                correct_list.append(1.0 if is_correct else 0.0)
+                difficulty_list.append(getattr(q, "difficulty", 0.0))
+                if is_correct:
+                    correct_count += 1
 
-        from database.services.user_service import UserService
+            # Rasch modeli (IRT) bo‘yicha yashirin qobiliyat va ball hisoblash
+            theta = rasch_ability(correct_list, difficulty_list)
+            score = theta_to_score(theta)
 
-        await UserService(self.session).add_test_score(user_id, score)
+            session_obj.is_completed = True
+            session_obj.rasch_score = score
+            session_obj.completed_at = self._now()
+            self.session.add(session_obj)
 
-        return {
-            "correct": correct_count,
-            "total": len(q_ids),
-            "answered": len(session_obj.answers),
-            "theta": theta,
-            "score": score,
-        }
+            # Foydalanuvchi umumiy balansini yangilash
+            from database.services.user_service import UserService
+
+            u_service = UserService(self.session)
+            user = await u_service.get_user(user_id)
+            if user:
+                user.test_score += int(score)
+                user.total_score = user.test_score + user.referral_score
+                self.session.add(user)
+
+            await self.session.commit()
+
+            # FIX: handler result_text() uchun answered va theta ham kerak
+            return {
+                "total": len(q_ids),
+                "correct": correct_count,
+                "answered": len(session_obj.answers),
+                "score": score,
+                "theta": round(theta, 2),
+                "status": "success",
+            }
+        except Exception as e:
+            await self.session.rollback()
+            logger.error(
+                f"❌ Sessiyani yopishda xatolik (Sessiya: {session_obj.id}): {e}"
+            )
+            return {
+                "total": 0,
+                "correct": 0,
+                "answered": 0,
+                "score": 0,
+                "theta": 0.0,
+                "status": "error",
+            }

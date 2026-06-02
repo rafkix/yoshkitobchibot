@@ -18,21 +18,16 @@ async def rating_handler(message: Message) -> None:
         user = await service.get_user(user_id)
         if not user:
             return await message.answer(
-                "📄 Profil topilmadi. Iltimos, ro'yxatdan o'ting."
+                "📄 Profil topilmadi. Iltimos, ro‘yxatdan o‘ting."
             )
 
         top_users = await service.get_top_users(limit=10)
 
         if user.is_registered:
             rank = await service.get_user_rank(user_id)
-            user_rank_line = (
-                f"\n📊 <b>Sizning reytingingiz:</b> #{rank} — "
-                f"{user.total_score} ball"
-            )
+            user_rank_line = f"\n📊 <b>Siz:</b> #{rank} — {user.total_score} ball"
         else:
-            user_rank_line = (
-                "\n⚠️ <i>Reytingda ko'rinish uchun ro'yxatdan o'ting.</i>"
-            )
+            user_rank_line = "\n⚠️ <i>Reytingda ko‘rinish uchun ro‘yxatdan o‘ting.</i>"
 
     lines = ["🏆 <b>Top 10 — Eng faol ishtirokchilar</b>\n"]
     for idx, u in enumerate(top_users):

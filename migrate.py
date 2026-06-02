@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Migration: yangi jadvallar va ustunlarni yaratish.
-Agar jadvallar allaqachon mavjud bo'lsa, xato bermaydi.
+Agar jadvallar allaqachon mavjud bo‘lsa, xato bermaydi.
 
 Ishlatish: python3 migrate.py
 """
@@ -26,7 +26,7 @@ async def add_column_if_missing(conn, table_name: str, column_name: str, ddl: st
         return
 
     await conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {ddl}"))
-    print(f"✅ {table_name}.{column_name} ustuni qo'shildi")
+    print(f"✅ {table_name}.{column_name} ustuni qo‘shildi")
 
 
 async def rebuild_test_sessions_if_needed(conn):
@@ -39,7 +39,7 @@ async def rebuild_test_sessions_if_needed(conn):
         return False
 
     if not await conn.run_sync(needs_rebuild):
-        print("ℹ️  test_sessions unique cheklovi to'g'ri")
+        print("ℹ️  test_sessions unique cheklovi to‘g‘ri")
         return
 
     await conn.execute(text("ALTER TABLE test_sessions RENAME TO test_sessions_old"))
@@ -71,7 +71,7 @@ async def rebuild_test_sessions_if_needed(conn):
         FROM test_sessions_old
     """))
     await conn.execute(text("DROP TABLE test_sessions_old"))
-    print("✅ test_sessions unique cheklovi user_id + test_id ko'rinishiga o'tkazildi")
+    print("✅ test_sessions unique cheklovi user_id + test_id ko‘rinishiga o‘tkazildi")
 
 
 async def run_migration():

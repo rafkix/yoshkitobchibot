@@ -42,10 +42,10 @@ async def start_handler(
         start_param = args[1]
 
         if start_param.isdigit():
-            referred_by = int(start_param)
+            ref_id = int(start_param)
 
-            if referred_by == message.from_user.id:
-                referred_by = None
+            if ref_id != message.from_user.id:
+                referred_by = ref_id
 
     # =========================================
     # USER
@@ -58,12 +58,13 @@ async def start_handler(
             user_id=message.from_user.id,
             referred_by=referred_by,
         )
-
-    # if message.from_user.id in ADMINS:
-    #     return await message.answer(
-    #         text="<b>Admin panel</b>\nKerakli bo'limni tanlang.",
-    #         reply_markup=admin_menu(),
-    #     )
+    elif referred_by is not None and user.referred_by is None:
+        # Mavjud foydalanuvchida referred_by yo‘q bo‘lsa — yangilash
+        await service.update_referred_by(
+            user_id=message.from_user.id,
+            referred_by=referred_by,
+        )
+        user.referred_by = referred_by
 
     # =========================================
     # REGISTER CHECK
@@ -96,7 +97,6 @@ async def check_subscription_callback(
     callback: CallbackQuery,
     state: FSMContext,
     session: AsyncSession,
-    deep_link_after_subscribe: str | None = None,
 ):
     if not callback.message or not callback.from_user:
         return await callback.answer()
@@ -109,19 +109,51 @@ async def check_subscription_callback(
     except Exception:
         pass
 
-    # Foydalanuvchini tekshirish
+    # =========================================
+    # REFERRAL — callback.data dan olish: "check:12345"
+    # =========================================
+
+    referred_by = None
+    if ":" in callback.data:
+        param = callback.data.split(":", 1)[1]
+        if param.isdigit():
+            ref_id = int(param)
+            if ref_id != callback.from_user.id:
+                referred_by = ref_id
+
+    # =========================================
+    # USER
+    # =========================================
+
     service = UserService(session)
     user = await service.get_user(callback.from_user.id)
 
     if not user:
-        user = await service.create_user(user_id=callback.from_user.id)
+        user = await service.create_user(
+            user_id=callback.from_user.id,
+            referred_by=referred_by,
+        )
+    elif referred_by is not None and user.referred_by is None:
+        await service.update_referred_by(
+            user_id=callback.from_user.id,
+            referred_by=referred_by,
+        )
+        user.referred_by = referred_by
+
+    # =========================================
+    # ADMIN CHECK
+    # =========================================
 
     if callback.from_user.id in ADMINS:
         await callback.message.answer(
-            text="<b>Admin panel</b>\nKerakli bo'limni tanlang.",
+            text="<b>Admin panel</b>\nKerakli bo‘limni tanlang.",
             reply_markup=admin_menu(),
         )
         return
+
+    # =========================================
+    # REGISTER CHECK
+    # =========================================
 
     if not user.is_registered:
         await callback.message.answer(
@@ -129,6 +161,10 @@ async def check_subscription_callback(
             reply_markup=start_keyboard(),
         )
         return
+
+    # =========================================
+    # MAIN MENU
+    # =========================================
 
     await callback.message.answer(
         text="<b>Assalomu alaykum!</b>",

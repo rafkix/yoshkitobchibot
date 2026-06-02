@@ -8,12 +8,7 @@ from app.keyboards.inline import (
     delete_channel_success_keyboard,
 )
 from data.config import ADMINS
-from database.services.channel_service import (
-    count_channels,
-    get_all_channels,
-    get_channel_by_id,
-    set_channel_active,
-)
+from database.services.channel_service import ChannelService
 from database.database import session_maker
 
 router = Router()
@@ -26,8 +21,8 @@ async def show_delete_channels_list(callback: CallbackQuery):
         return
 
     async with session_maker() as session:
-        total = await count_channels(session, active_only=True)
-        channels = await get_all_channels(session, active_only=True)
+        total = await ChannelService.count_channels(session, active_only=True)
+        channels = await ChannelService.get_all_channels(session, active_only=True)
 
     if not channels:
         await callback.message.edit_text(
@@ -66,13 +61,13 @@ async def delete_selected_channel(callback: CallbackQuery):
         return
 
     async with session_maker() as session:
-        channel = await get_channel_by_id(session, channel_id)
+        channel = await ChannelService.get_channel_by_id(session, channel_id)
         if not channel:
             await callback.answer("❌ Kanal topilmadi", show_alert=True)
             return
 
         # Soft delete
-        result = await set_channel_active(
+        result = await ChannelService.set_channel_active(
             session=session,
             channel_id=channel_id,
             is_active=False,

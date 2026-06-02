@@ -346,7 +346,7 @@ async def cn_pick(callback: CallbackQuery):
     contest_id = int(callback.data.split(":")[1])
     await callback.message.edit_text(
         "🎲 Tasodifiy g‘olib tanlansinmi?\n\n"
-        "Ko'proq referal qilgan foydalanuvchining imkoniyati yuqoriroq bo'ladi, "
+        "Ko‘proq referal qilgan foydalanuvchining imkoniyati yuqoriroq bo‘ladi, "
         "lekin shartni bajargan har bir ishtirokchi yutishi mumkin.",
         reply_markup=confirm_keyboard(
             yes_cb=f"cn_pick_confirm:{contest_id}",
@@ -468,7 +468,7 @@ async def cn_create_title(message: Message, state: FSMContext):
     await state.set_state(ContestCreateState.description)
     await message.answer(
         "2️⃣ Konkurs tavsifini kiriting:\n"
-        "Tavsif kerak bo'lmasa, pastdagi tugmani bosing.",
+        "Tavsif kerak bo‘lmasa, pastdagi tugmani bosing.",
         reply_markup=skip_cancel_reply_keyboard(),
     )
 
@@ -483,7 +483,7 @@ async def cn_create_description(message: Message, state: FSMContext):
     await state.set_state(ContestCreateState.button_text)
     await message.answer(
         "3️⃣ Konkurs tugmasi bosilganda foydalanuvchiga chiqadigan matnni kiriting:\n"
-        "Matn kerak bo'lmasa, pastdagi tugmani bosing.",
+        "Matn kerak bo‘lmasa, pastdagi tugmani bosing.",
         reply_markup=skip_cancel_reply_keyboard(),
     )
 

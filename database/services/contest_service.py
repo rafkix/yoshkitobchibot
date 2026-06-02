@@ -1,162 +1,210 @@
 # database/services/contest_service.py
 
 import random
-from datetime import datetime, UTC
-
-from sqlalchemy import select, func
+import logging
+from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from database.models import ReferralContest, ContestStatus, User
+
+logger = logging.getLogger(__name__)
 
 
 class ContestService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    # -------------------------------------------------------
-    # GET ACTIVE CONTEST
-    # -------------------------------------------------------
     async def get_active_contest(self) -> ReferralContest | None:
-        result = await self.session.execute(
-            select(ReferralContest).where(
-                ReferralContest.status == ContestStatus.ACTIVE
+        """Hozirda tizimda faol bo‘lgan jonli konkursni yuklash."""
+        try:
+            result = await self.session.execute(
+                select(ReferralContest).where(
+                    ReferralContest.status == ContestStatus.ACTIVE
+                )
             )
-        )
-        return result.scalar_one_or_none()
+            return result.scalar_one_or_none()
+        except Exception as e:
+            logger.error(f"❌ Faol konkursni yuklashda xatolik: {e}")
+            return None
 
-    # -------------------------------------------------------
-    # GET ALL CONTESTS
-    # -------------------------------------------------------
     async def get_all_contests(self) -> list[ReferralContest]:
-        result = await self.session.execute(
-            select(ReferralContest).order_by(ReferralContest.created_at.desc())
-        )
-        return result.scalars().all()
+        """Barcha konkurslar ro‘yxatini yangi-eskiga tartiblash."""
+        try:
+            result = await self.session.execute(
+                select(ReferralContest).order_by(desc(ReferralContest.created_at))
+            )
+            return list(result.scalars().all())
+        except Exception as e:
+            logger.error(f"❌ Konkurslar ro‘yxatini yuklashda xatolik: {e}")
+            return []
 
-    # -------------------------------------------------------
-    # CREATE CONTEST
-    # -------------------------------------------------------
     async def create_contest(
         self,
         title: str,
         description: str | None,
         button_text: str | None,
         min_referrals: int,
-        prize_description: str | None,
-    ) -> ReferralContest:
-        contest = ReferralContest(
-            title=title,
-            description=description,
-            button_text=button_text,
-            min_referrals=min_referrals,
-            prize_description=prize_description,
-            status=ContestStatus.DRAFT,
-        )
-        self.session.add(contest)
-        await self.session.commit()
-        await self.session.refresh(contest)
-        return contest
-
-    # -------------------------------------------------------
-    # START CONTEST  (draft → active)
-    # -------------------------------------------------------
-    async def start_contest(self, contest_id: int) -> ReferralContest | None:
-        # Avval boshqa aktiv konkursni tugatamiz
-        existing = await self.get_active_contest()
-        if existing and existing.id != contest_id:
-            existing.status = ContestStatus.FINISHED
-            existing.ended_at = datetime.now(UTC)
-
-        result = await self.session.execute(
-            select(ReferralContest).where(ReferralContest.id == contest_id)
-        )
-        contest = result.scalar_one_or_none()
-        if not contest:
+        referral_score_per_user: int = 1,
+    ) -> ReferralContest | None:
+        """Yangi referal konkurs yaratish (Tranzaksiyaviy xavfsiz)."""
+        try:
+            contest = ReferralContest(
+                title=title,
+                description=description,
+                button_text=button_text,
+                min_referrals=min_referrals,
+                referral_score_per_user=referral_score_per_user,
+                status=ContestStatus.ACTIVE,
+            )
+            self.session.add(contest)
+            await self.session.commit()
+            await self.session.refresh(contest)
+            return contest
+        except Exception as e:
+            await self.session.rollback()
+            logger.error(f"❌ Konkurs yaratishda xatolik: {e}")
             return None
-
-        contest.status = ContestStatus.ACTIVE
-        contest.started_at = datetime.now(UTC)
-        await self.session.commit()
-        return contest
-
-    # -------------------------------------------------------
-    # STOP CONTEST  (active → finished)
-    # -------------------------------------------------------
-    async def stop_contest(self, contest_id: int) -> ReferralContest | None:
-        result = await self.session.execute(
-            select(ReferralContest).where(ReferralContest.id == contest_id)
-        )
-        contest = result.scalar_one_or_none()
-        if not contest:
-            return None
-        contest.status = ContestStatus.FINISHED
-        contest.ended_at = datetime.now(UTC)
-        await self.session.commit()
-        return contest
-
-    # -------------------------------------------------------
-    # GET ELIGIBLE USERS
-    # — Konkursda ishtirok etish shartini bajargan userlar
-    #   (min_referrals ta Ro‘YXATDAN o‘TGAN referal)
-    # -------------------------------------------------------
-    async def get_eligible_users(self, contest: ReferralContest) -> list[User]:
-        rows = await self.get_eligible_users_with_counts(contest)
-        return [user for user, _ in rows]
 
     async def get_eligible_users_with_counts(
         self, contest: ReferralContest
     ) -> list[tuple[User, int]]:
-        # Har bir userning ro‘yxatdan o‘tgan referallari soni
-        subq = (
-            select(
-                User.referred_by.label("referrer_id"),
-                func.count(User.id).label("ref_count"),
+        """Konkurs shartlarini bajargan nomzodlar ro‘yxati."""
+        try:
+            referrals = (
+                select(
+                    User.referred_by.label("referrer_id"),
+                    func.count(User.user_id).label("ref_count"),
+                )
+                .where(
+                    User.referred_by.isnot(None),
+                    User.is_registered.is_(True),
+                )
+                .group_by(User.referred_by)
+                .having(func.count(User.user_id) >= contest.min_referrals)
+                .subquery()
             )
-            .where(User.is_registered.is_(True), User.referred_by.isnot(None))
-            .group_by(User.referred_by)
-            .subquery()
-        )
 
-        result = await self.session.execute(
-            select(User, subq.c.ref_count)
-            .join(subq, User.user_id == subq.c.referrer_id)
-            .where(
-                User.is_registered.is_(True),
-                subq.c.ref_count >= contest.min_referrals,
+            stmt = (
+                select(User, referrals.c.ref_count)
+                .join(referrals, User.user_id == referrals.c.referrer_id)
+                .where(User.is_registered.is_(True))
             )
-        )
-        return [(user, int(ref_count)) for user, ref_count in result.all()]
+            result = await self.session.execute(stmt)
+            return [(row[0], int(row[1])) for row in result.all()]
+        except Exception as e:
+            logger.error(f"❌ Konkurs ishtirokchilarini saralashda xatolik: {e}")
+            return []
 
-    # -------------------------------------------------------
-    # PICK RANDOM WINNER
-    # -------------------------------------------------------
-    async def pick_winner(self, contest_id: int) -> tuple[ReferralContest | None, User | None]:
-        result = await self.session.execute(
-            select(ReferralContest).where(ReferralContest.id == contest_id)
-        )
-        contest = result.scalar_one_or_none()
-        if not contest:
+    async def pick_winner(
+        self, contest_id: int
+    ) -> tuple[ReferralContest | None, User | None]:
+        """Konkurs g‘olibini taklif qilganlar soniga mos (Weighted Random) aniqlash."""
+        try:
+            result = await self.session.execute(
+                select(ReferralContest).where(ReferralContest.id == contest_id)
+            )
+            contest = result.scalar_one_or_none()
+            if not contest:
+                return None, None
+
+            eligible = await self.get_eligible_users_with_counts(contest)
+            if not eligible:
+                return contest, None
+
+            users = [user for user, _ in eligible]
+            weights = [max(1, ref_count) for _, ref_count in eligible]
+
+            winner = random.choices(users, weights=weights, k=1)[0]
+            contest.winner_user_id = winner.user_id
+            contest.status = ContestStatus.FINISHED
+
+            self.session.add(contest)
+            await self.session.commit()
+            return contest, winner
+        except Exception as e:
+            await self.session.rollback()
+            logger.error(f"❌ g‘olibni aniqlash jarayonida xatolik: {e}")
             return None, None
 
-        eligible = await self.get_eligible_users_with_counts(contest)
-        if not eligible:
-            return contest, None
+    async def get_min_referrals(self, contest_id: int) -> int | None:
+        """Konkursning min_referrals qiymatini o‘qish."""
+        try:
+            result = await self.session.execute(
+                select(ReferralContest.min_referrals).where(
+                    ReferralContest.id == contest_id
+                )
+            )
+            return result.scalar_one_or_none()
+        except Exception as e:
+            logger.error(
+                f"❌ min_referrals ni o‘qishda xatolik (ID: {contest_id}): {e}"
+            )
+            return None
 
-        users = [user for user, _ in eligible]
-        weights = [max(1, ref_count) for _, ref_count in eligible]
-        winner = random.choices(users, weights=weights, k=1)[0]
-        contest.winner_user_id = winner.user_id
-        await self.session.commit()
-        return contest, winner
+    async def set_min_referrals(
+        self, contest_id: int, value: int
+    ) -> ReferralContest | None:
+        """Konkursning min_referrals qiymatini yangilash."""
+        try:
+            if value < 1:
+                logger.warning(
+                    f"⚠️ min_referrals 1 dan kichik bo‘lishi mumkin emas: {value}"
+                )
+                return None
 
-    # -------------------------------------------------------
-    # DELETE CONTEST
-    # -------------------------------------------------------
-    async def delete_contest(self, contest_id: int):
-        result = await self.session.execute(
-            select(ReferralContest).where(ReferralContest.id == contest_id)
-        )
-        contest = result.scalar_one_or_none()
-        if contest:
+            result = await self.session.execute(
+                select(ReferralContest).where(ReferralContest.id == contest_id)
+            )
+            contest = result.scalar_one_or_none()
+            if not contest:
+                return None
+
+            contest.min_referrals = value
+            self.session.add(contest)
+            await self.session.commit()
+            await self.session.refresh(contest)
+            logger.info(f"✅ min_referrals yangilandi: konkurs {contest_id} → {value}")
+            return contest
+        except Exception as e:
+            await self.session.rollback()
+            logger.error(
+                f"❌ min_referrals ni yangilashda xatolik (ID: {contest_id}): {e}"
+            )
+            return None
+
+    async def increment_min_referrals(
+        self, contest_id: int, amount: int = 1
+    ) -> ReferralContest | None:
+        """min_referrals qiymatini berilgan miqdorga oshirish."""
+        try:
+            current = await self.get_min_referrals(contest_id)
+            if current is None:
+                return None
+            return await self.set_min_referrals(contest_id, current + amount)
+        except Exception as e:
+            logger.error(
+                f"❌ min_referrals ni oshirishda xatolik (ID: {contest_id}): {e}"
+            )
+            return None
+
+    async def reset_min_referrals(
+        self, contest_id: int, default: int = 10
+    ) -> ReferralContest | None:
+        """min_referrals ni standart qiymatga qaytarish."""
+        return await self.set_min_referrals(contest_id, default)
+
+    async def delete_contest(self, contest_id: int) -> bool:
+        """Konkursni tizimdan butunlay o‘chirish."""
+        try:
+            result = await self.session.execute(
+                select(ReferralContest).where(ReferralContest.id == contest_id)
+            )
+            contest = result.scalar_one_or_none()
+            if not contest:
+                return False
             await self.session.delete(contest)
             await self.session.commit()
+            return True
+        except Exception as e:
+            await self.session.rollback()
+            logger.error(f"❌ Konkursni o‘chirishda xatolik: {e}")
+            return False

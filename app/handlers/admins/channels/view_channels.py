@@ -9,12 +9,7 @@ from app.keyboards.inline import (
 )
 from data.config import ADMINS
 from database.models import Channel
-from database.services.channel_service import (
-    count_channels,
-    get_all_channels,
-    get_channel_by_id,
-    update_channel_subscribers,
-)
+from database.services.channel_service import ChannelService
 from database.database import session_maker
 
 router = Router()
@@ -40,8 +35,8 @@ async def show_channels_list(callback: CallbackQuery):
         return
 
     async with session_maker() as session:
-        total = await count_channels(session)
-        channels = await get_all_channels(session)
+        total = await ChannelService.count_channels(session)
+        channels = await ChannelService.get_all_channels(session)
 
     text = (
         "📋 <b>Majburiy obuna kanallari ro‘yxati:</b>\n\n"
@@ -72,7 +67,7 @@ async def show_channel_detail(callback: CallbackQuery):
         return
 
     async with session_maker() as session:
-        channel = await get_channel_by_id(session, channel_id)
+        channel = await ChannelService.get_channel_by_id(session, channel_id)
 
         if not channel:
             await callback.answer("❌ Kanal topilmadi", show_alert=True)
@@ -88,7 +83,7 @@ async def show_channel_detail(callback: CallbackQuery):
                     channel.channel_id
                 )
 
-                updated_channel = await update_channel_subscribers(
+                updated_channel = await ChannelService.update_channel_subscribers(
                     session=session,
                     channel_id=channel.channel_id,
                     new_count=real_count,

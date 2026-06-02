@@ -6,11 +6,8 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from data.config import ADMINS
-from database.services.channel_service import get_all_channels
-from database.services.join_request_service import (
-    get_active_channel_join,
-    add_channel_join,
-)
+from database.services.channel_service import ChannelService
+from database.services.join_request_service import ChannelJoin
 from database.database import session_maker
 
 
@@ -70,7 +67,9 @@ class SubscriptionMiddleware(BaseMiddleware):
         # =========================
         async with session_maker() as session:
             try:
-                channels = await get_all_channels(session, active_only=True)
+                channels = await ChannelService.get_all_channels(
+                    session, active_only=True
+                )
             except Exception as e:
                 logging.error(f"❗ Kanal olishda xatolik: {e}")
                 return await handler(event, data)
@@ -87,7 +86,7 @@ class SubscriptionMiddleware(BaseMiddleware):
                     # 🔒 PRIVATE CHANNEL
                     # =========================
                     if channel.is_private:
-                        join = await get_active_channel_join(
+                        join = await ChannelJoin.get_active_channel_join(
                             session=session,
                             user_id=user_id,
                             channel_id=channel.channel_id,
@@ -127,7 +126,7 @@ class SubscriptionMiddleware(BaseMiddleware):
                             continue
 
                         if member.status in {"member", "administrator", "creator"}:
-                            await add_channel_join(
+                            await ChannelJoin.add_channel_join(
                                 session=session,
                                 user_id=user_id,
                                 channel_id=channel.channel_id,
@@ -137,7 +136,7 @@ class SubscriptionMiddleware(BaseMiddleware):
                         if member.status == "restricted" and getattr(
                             member, "is_member", False
                         ):
-                            await add_channel_join(
+                            await ChannelJoin.add_channel_join(
                                 session=session,
                                 user_id=user_id,
                                 channel_id=channel.channel_id,
@@ -160,7 +159,7 @@ class SubscriptionMiddleware(BaseMiddleware):
                     # 🔐 INVITE LINK (so‘rovli)
                     # =========================
                     if channel.link_type == "telegram_invite":
-                        join = await get_active_channel_join(
+                        join = await ChannelJoin.get_active_channel_join(
                             session=session,
                             user_id=user_id,
                             channel_id=channel.channel_id,
@@ -198,7 +197,7 @@ class SubscriptionMiddleware(BaseMiddleware):
 
                 except Exception as e:
                     logging.warning(
-                        f"⚠️ Obuna tekshirishda xatolik "
+                        f"Obuna tekshirishda xatolik "
                         f"(channel_id={channel.channel_id}): {e}"
                     )
 
@@ -211,6 +210,7 @@ class SubscriptionMiddleware(BaseMiddleware):
             for btn in unsubscribed_buttons:
                 builder.add(btn)
 
+            # ✅ deep_link ni "check:12345" formatida saqlash
             check_callback = "check"
             if deep_link:
                 check_callback += f":{deep_link}"
@@ -224,7 +224,9 @@ class SubscriptionMiddleware(BaseMiddleware):
 
             builder.adjust(1)
 
-            text = "Avval kanallarga obuna bo‘ling:"
+            text = (
+                "Botdan foydalanish uchun avval quyidagi kanallarga obuna bo‘ling:"
+            )
 
             try:
                 if isinstance(event, types.CallbackQuery):
@@ -252,8 +254,10 @@ class SubscriptionMiddleware(BaseMiddleware):
         # =========================
         # HANDLER GA o‘TKAZISH
         # =========================
+        # ✅ deep_link ni har doim uzatamiz (referral uchun kerak)
+        data["deep_link_after_subscribe"] = deep_link
+
         if is_check_callback:
             data["subscription_passed"] = True
-            data["deep_link_after_subscribe"] = deep_link
 
         return await handler(event, data)

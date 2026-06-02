@@ -11,8 +11,11 @@ from app.keyboards.users.tests import (
 )
 from database.database import session_maker
 from database.models import TestSession, Test, Question
-from database.services.test_service import TestService, SECONDS_PER_QUESTION
-from database.services.settings_service import SettingsService
+from database.services.test_service import (
+    TestService,
+    SECONDS_PER_QUESTION,
+    TEST_MAX_QUESTIONS,
+)
 
 router = Router()
 
@@ -136,12 +139,11 @@ async def pick_test(callback: CallbackQuery):
                 Question.is_active.is_(True),
             )
         )
-        settings = SettingsService(session)
-        max_questions = await settings.get_int("test_max_questions", 40)
-        seconds_per_question = await settings.get_int(
-            "test_seconds_per_question",
-            SECONDS_PER_QUESTION,
-        )
+        # SettingsService mavjud emas — test_service konstantalarini ishlatamiz
+        max_questions = TEST_MAX_QUESTIONS
+        seconds_per_question = SECONDS_PER_QUESTION
+
+        availability_str = service.availability_text(test)
 
     # Savol soniga qarab vaqtni hisoblash
     actual_count = min(q_count or 0, max_questions)
@@ -152,7 +154,7 @@ async def pick_test(callback: CallbackQuery):
         f"📋 <b>{test.title}</b>\n\n"
         f"📝 Savollar soni: <b>{actual_count} ta</b>\n"
         f"🕐 Vaqt: <b>{duration_str}</b>\n\n"
-        f"🗓 Ochilish vaqti: <b>{service.availability_text(test)}</b>\n\n"
+        f"🗓 Ochilish vaqti: <b>{availability_str}</b>\n\n"
         f"Testni boshlashga tayyormisiz?",
         parse_mode="HTML",
         reply_markup=start_test_keyboard(test_id),
@@ -188,6 +190,7 @@ async def start_test(callback: CallbackQuery):
     test_id = int(callback.data.split(":")[1])
     user_id = callback.from_user.id
 
+    # FIX: send_question ni session ichida chaqirish (ochiq session kerak)
     async with session_maker() as session:
         service = TestService(session)
         session_obj, status = await service.get_or_create_session(user_id, test_id)
@@ -245,11 +248,14 @@ async def start_test(callback: CallbackQuery):
             )
 
         await callback.answer()
+
+        # FIX: send_question session ichida — ochiq DB ulanish bilan
         await send_question(callback.message, session_obj, service)
 
-        asyncio.create_task(
-            auto_finish_timer(user_id, callback.message.chat.id, callback.bot, test_id)
-        )
+    # FIX: asyncio.create_task session yopilgandan keyin — to‘g‘ri
+    asyncio.create_task(
+        auto_finish_timer(user_id, callback.message.chat.id, callback.bot, test_id)
+    )
 
 
 # =========================================================
@@ -258,7 +264,9 @@ async def start_test(callback: CallbackQuery):
 
 
 async def auto_finish_timer(user_id: int, chat_id: int, bot, test_id: int):
+    # FIX: birinchi blokda ham service yaratish kerak edi
     async with session_maker() as session:
+        service = TestService(session)  # ✅ avval yo‘q edi — NameError tuzatildi
         result = await session.execute(
             select(TestSession).where(
                 TestSession.user_id == user_id,
@@ -347,4 +355,5 @@ async def answer_handler(callback: CallbackQuery):
             res = await service.finish_session(session_obj, user_id)
             await callback.message.edit_text(result_text(res), parse_mode="HTML")
         else:
+            # FIX: send_question session ichida chaqirilmoqda — to‘g‘ri
             await send_question(callback, session_obj, service)

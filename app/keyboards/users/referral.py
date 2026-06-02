@@ -6,7 +6,7 @@ def referral_share_keyboard(referral_link: str, share_url: str) -> InlineKeyboar
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="📤 Do'stlarga ulashish",
+                    text="📤 Do‘stlarga ulashish",
                     switch_inline_query=referral_link,
                 )
             ],
@@ -20,7 +20,7 @@ def inline_join_keyboard(referral_link: str) -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="📚 Loyihaga qo'shilish",
+                    text="📚 Loyihaga qo‘shilish",
                     url=referral_link,
                 )
             ]

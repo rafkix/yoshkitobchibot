@@ -9,13 +9,7 @@ from data.config import ADMINS
 from aiogram.fsm.context import FSMContext
 
 from database.database import session_maker
-from database.services.stats import (
-    count_total_users,
-    count_registered_users,
-    count_unregistered_users,
-    count_new_users_since,
-    count_new_registered_users_since,
-)
+from database.services.stats import StatService
 
 router = Router()
 
@@ -52,17 +46,17 @@ async def back_to_management(message: Message, state: FSMContext):
 @router.message(F.text == "📊 Statistika", IsAdmin(admin_ids=ADMINS))
 async def admin_stats(message: Message):
     async with session_maker() as session:
-        total = await count_total_users(session)
-        registered = await count_registered_users(session)
-        unregistered = await count_unregistered_users(session)
+        total = await StatService.count_total_users(session)
+        registered = await StatService.count_registered_users(session)
+        unregistered = await StatService.count_unregistered_users(session)
 
-        new_1d = await count_new_users_since(session, 1)
-        new_7d = await count_new_users_since(session, 7)
-        new_30d = await count_new_users_since(session, 30)
+        new_1d = await StatService.count_new_users_since(session, 1)
+        new_7d = await StatService.count_new_users_since(session, 7)
+        new_30d = await StatService.count_new_users_since(session, 30)
 
-        reg_1d = await count_new_registered_users_since(session, 1)
-        reg_7d = await count_new_registered_users_since(session, 7)
-        reg_30d = await count_new_registered_users_since(session, 30)
+        reg_1d = await StatService.count_new_registered_users_since(session, 1)
+        reg_7d = await StatService.count_new_registered_users_since(session, 7)
+        reg_30d = await StatService.count_new_registered_users_since(session, 30)
 
     text = (
         "📊 <b>Statistika</b>\n"

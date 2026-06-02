@@ -2,7 +2,7 @@ from aiogram import Router
 from aiogram.types import ChatJoinRequest
 
 from database.database import session_maker
-from database.services.join_request_service import mark_channel_request_by_chat_id
+from database.services.join_request_service import ChannelJoin
 
 router = Router()
 
@@ -14,7 +14,7 @@ async def handle_join_request(event: ChatJoinRequest):
     user_chat_id = event.user_chat_id  # 🔥 MUHIM
     print(user_chat_id, user_id)
     async with session_maker() as session:
-        await mark_channel_request_by_chat_id(
+        await ChannelJoin.mark_channel_request_by_chat_id(
             session=session,
             user_id=user_id,
             telegram_chat_id=chat_id,

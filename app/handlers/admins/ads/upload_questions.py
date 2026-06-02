@@ -78,7 +78,9 @@ def test_main_keyboard():
         InlineKeyboardButton(text="📥 Savol yuklash", callback_data="admin:upload")
     )
     builder.add(InlineKeyboardButton(text="📊 Statistika", callback_data="admin:stat"))
-    builder.add(InlineKeyboardButton(text="⚙️ Aktivlik va vaqt", callback_data="ta_list"))
+    builder.add(
+        InlineKeyboardButton(text="⚙️ Aktivlik va vaqt", callback_data="ta_list")
+    )
     builder.add(
         InlineKeyboardButton(text="🗑 Savollarni o‘chirish", callback_data="admin:clear")
     )
@@ -96,7 +98,7 @@ def upload_mode_keyboard(test_id: int):
     builder = InlineKeyboardBuilder()
     builder.add(
         InlineKeyboardButton(
-            text="➕ Mavjudiga qo'shish",
+            text="➕ Mavjudiga qo‘shish",
             callback_data=f"upload_mode:{test_id}:append",
         )
     )
@@ -247,8 +249,7 @@ async def upload_test_selected(callback: CallbackQuery):
         return
 
     await callback.message.edit_text(
-        f"📥 <b>{test.title}</b>\n\n"
-        "Savollar qanday yuklansin?",
+        f"📥 <b>{test.title}</b>\n\nSavollar qanday yuklansin?",
         parse_mode="HTML",
         reply_markup=upload_mode_keyboard(test_id),
     )
@@ -260,7 +261,7 @@ async def upload_mode_selected(callback: CallbackQuery):
     _, test_id_raw, mode = callback.data.split(":")
     test_id = int(test_id_raw)
     if mode not in {"append", "replace"}:
-        return await callback.answer("Noto'g'ri rejim.", show_alert=True)
+        return await callback.answer("Noto‘g‘ri rejim.", show_alert=True)
 
     async with session_maker() as session:
         result = await session.execute(select(Test).where(Test.id == test_id))
@@ -273,9 +274,9 @@ async def upload_mode_selected(callback: CallbackQuery):
     _pending_upload[callback.from_user.id] = test_id
     _pending_upload_mode[callback.from_user.id] = mode
     mode_text = (
-        "mavjud savollarga qo'shiladi"
+        "mavjud savollarga qo‘shiladi"
         if mode == "append"
-        else "eski savollar o'chirilib, yangisi yoziladi"
+        else "eski savollar o‘chirilib, yangisi yoziladi"
     )
 
     await callback.message.edit_text(
@@ -415,7 +416,9 @@ async def handle_excel_upload(message: Message, bot: Bot):
 
     async with session_maker() as session:
         if mode == "replace":
-            await session.execute(delete(TestSession).where(TestSession.test_id == test_id))
+            await session.execute(
+                delete(TestSession).where(TestSession.test_id == test_id)
+            )
             await session.execute(delete(Question).where(Question.test_id == test_id))
         session.add_all(questions_to_add)
         await session.commit()

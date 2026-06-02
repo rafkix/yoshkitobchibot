@@ -19,6 +19,8 @@ from database.database import session_maker
 
 from app.states.register import RegisterState
 
+from main import bot
+
 from app.keyboards.reply import (
     regions_keyboard,
     districts_keyboard,
@@ -134,11 +136,6 @@ def is_editing(data: dict) -> bool:
 
 
 def find_mahalla(district_id: int, text: str) -> dict | None:
-    """
-    Foydalanuvchi bosgan tugma matni bo‘yicha mahallani topadi.
-    Tugmada mfy_name ko‘rsatiladi (masalan "Bo‘ston MFY"),
-    shuning uchun ham mfy_name, ham name bilan solishtiradi.
-    """
     for m in mahallas_data:
         if int(m["district_id"]) != int(district_id):
             continue
@@ -307,7 +304,6 @@ async def process_neighborhood(message: Message, state: FSMContext):
     data = await state.get_data()
     district_id = data["district_id"]
 
-    # mfy_name ("Bo‘ston MFY") yoki name ("Bo‘ston") — ikkalasi bilan qidiriladi
     selected = find_mahalla(district_id, message.text)
 
     if not selected:
@@ -318,7 +314,6 @@ async def process_neighborhood(message: Message, state: FSMContext):
             reply_markup=ReplyKeyboardRemove(),
         )
 
-    # Saqlanayotganda mfy_name emas, name saqlanadi
     await state.update_data(neighborhood=selected["name"])
     data = await state.get_data()
 
@@ -448,7 +443,6 @@ async def back_to_contest(message: Message, state: FSMContext):
 
 @router.message(RegisterState.direction)
 async def process_direction(message: Message, state: FSMContext):
-    # "10-14 yosh toifasi (2012-2016)" dagi har qanday ko‘rinishni qabul qilish
     selected = DIRECTION_MAPPING.get(message.text)
 
     if not selected:
@@ -467,13 +461,17 @@ async def process_direction(message: Message, state: FSMContext):
 
 
 @router.callback_query(RegisterState.confirm, F.data == "confirm:yes")
-async def confirm_registration(callback: CallbackQuery, state: FSMContext):
+async def confirm_registration(
+    callback: CallbackQuery,
+    state: FSMContext,
+):
     data = await state.get_data()
 
     async with session_maker() as session:
         user_service = UserService(session)
         await user_service.complete_registration(
             user_id=callback.from_user.id,
+            bot=bot,  # ✅ referrerga xabar yuborish uchun
             full_name=data["full_name"],
             birth_date=data["birth_date"],
             region=data["region"],

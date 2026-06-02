@@ -8,6 +8,7 @@ from database.models import Channel
 # 🔐 ADMIN: CHANNEL
 # =========================
 
+
 async def admin_channel() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
@@ -52,6 +53,7 @@ def admin_channel_detail_keyboard(channel) -> InlineKeyboardMarkup:
 # 🗑 DELETE FLOW
 # =========================
 
+
 def delete_channels_list_keyboard(channels: list) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
@@ -79,6 +81,7 @@ def delete_channel_success_keyboard() -> InlineKeyboardMarkup:
 # =========================
 # ⚙️ CHANNEL TYPE
 # =========================
+
 
 def channel_type_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
@@ -202,6 +205,7 @@ def confirm_delete_ad_keyboard(ad_id: int) -> InlineKeyboardMarkup:
     builder.adjust(1)
     return builder.as_markup()
 
+
 def admin_ads_send() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
@@ -210,6 +214,7 @@ def admin_ads_send() -> InlineKeyboardMarkup:
 
     builder.adjust(2)
     return builder.as_markup()
+
 
 def cancel_ads_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(

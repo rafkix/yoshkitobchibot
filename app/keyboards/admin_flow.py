@@ -3,7 +3,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
 CANCEL_TEXT = "❌ Bekor qilish"
-SKIP_TEXT = "⏭ O'tkazib yuborish"
+SKIP_TEXT = "⏭ o‘tkazib yuborish"
 
 
 def cancel_reply_keyboard() -> ReplyKeyboardMarkup:
