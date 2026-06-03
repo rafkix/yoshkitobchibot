@@ -96,7 +96,7 @@ class Question(Base):
     option_b: Mapped[str] = mapped_column(Text)
     option_c: Mapped[str] = mapped_column(Text)
     option_d: Mapped[str] = mapped_column(Text)
-    correct: Mapped[str] = mapped_column(String(10))  # 'a', 'b', 'c' yoki 'd'
+    correct: Mapped[str] = mapped_column(String(10))  # 'a‘, 'b', 'c' yoki 'd'
     difficulty: Mapped[float] = mapped_column(default=0.0)
 
     test: Mapped["Test"] = relationship("Test", back_populates="questions")

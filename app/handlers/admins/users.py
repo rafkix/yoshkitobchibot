@@ -57,7 +57,7 @@ def users_list_keyboard(
     for user in users:
         icon = "🟢" if user.is_registered else "🟡"
 
-        name = (user.full_name or "Noma'lum")[:18]
+        name = (user.full_name or "Noma‘lum")[:18]
 
         kb.button(
             text=f"{icon} {name} • {user.total_score}b",
@@ -215,11 +215,11 @@ def user_detail_text(user, referrals_total: int, referrals_registered: int) -> s
         "<b>👤 FOYDALANUVCHINING TO'LIQ PROFILI</b>\n"
         "📂 <i>ID:</i> <code>{user.user_id}</code>\n"
         "───────────────────\n"
-        f"📋 <b>Shaxsiy ma'lumotlar:</b>\n"
+        f"📋 <b>Shaxsiy ma‘lumotlar:</b>\n"
         f" 👤 <b>F.I.Sh:</b> {user.full_name or '—'}\n"
         f" 📅 <b>Tug'ilgan sana:</b> {user.birth_date or '—'}\n"
         f" 📞 <b>Telefon:</b> <code>{user.phone_number or '—'}</code>\n\n"
-        f"📍 <b>Manzil ma'lumotlari:</b>\n"
+        f"📍 <b>Manzil ma‘lumotlari:</b>\n"
         f" 🗺 <b>Viloyat:</b> {user.region or '—'}\n"
         f" 🏙 <b>Tuman:</b> {user.district or '—'}\n"
         f" 🏡 <b>Mahalla:</b> {user.neighborhood or '—'}\n"
@@ -611,7 +611,7 @@ async def admin_users_search_or_message(message: Message, state: FSMContext):
         try:
             await message.bot.send_message(
                 chat_id=target_user_id,
-                text=f"📩 <b>Tizim ma'muriyatidan xabar:</b>\n\n{message.text}",
+                text=f"📩 <b>Tizim ma‘muriyatidan xabar:</b>\n\n{message.text}",
                 parse_mode="HTML",
             )
             await message.answer(
@@ -641,7 +641,7 @@ async def admin_users_search_or_message(message: Message, state: FSMContext):
     total = len(users)
     if not users:
         return await message.answer(
-            f"🤷‍♂️ Kechirasiz, <b>'{query}'</b> so'rovi bo'yicha hech qanday ma'lumot topilmadi.",
+            f"🤷‍♂️ Kechirasiz, <b>'{query}'</b> so'rovi bo'yicha hech qanday ma‘lumot topilmadi.",
             parse_mode="HTML",
             reply_markup=admin_menu(),
         )

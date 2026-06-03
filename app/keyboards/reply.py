@@ -14,7 +14,7 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 # =========================================================
-# MA'LUMOTLARNI YUKLASH (bir marta, cache'lanadi)
+# Ma‘LUMOTLARNI YUKLASH (bir marta, cache'lanadi)
 # =========================================================
 
 

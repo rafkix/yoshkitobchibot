@@ -14,7 +14,7 @@ async def chek(user_id: int, channel: Union[str, int]) -> bool:
     ):
         return True
 
-    # Foydalanuvchi a'zo yoki admin/owner bo‘lsa True qaytaradi
+    # Foydalanuvchi a‘zo yoki admin/owner bo‘lsa True qaytaradi
     return isinstance(
         chat_member, (ChatMemberMember, ChatMemberAdministrator, ChatMemberOwner)
     )

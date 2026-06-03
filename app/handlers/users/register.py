@@ -115,7 +115,7 @@ async def show_confirm(message: Message, state: FSMContext):
     data = await state.get_data()
 
     text = (
-        "<b>Ma'lumotlaringizni tasdiqlang:</b>\n\n"
+        "<b>Ma‘lumotlaringizni tasdiqlang:</b>\n\n"
         f"<b>F.I.Sh:</b> {data['full_name']}\n"
         f"<b>Tug‘ilgan sana:</b> {data['birth_date']}\n"
         f"<b>Yashash joyi:</b> {data['region']}, {data['district']}, {data['neighborhood']}\n"

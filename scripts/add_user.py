@@ -1,13 +1,13 @@
-# """Foydalanuvchi ma'lumotlarini bazaga qo‘shish skripti.
+# """Foydalanuvchi ma‘lumotlarini bazaga qo‘shish skripti.
 
-# Ushbu skript quyidagi ma'lumotlarni kirita oladi:
+# Ushbu skript quyidagi ma‘lumotlarni kirita oladi:
 # - To‘liq ism (F.I.Sh.)
 # - Tug‘ilgan sana
 # - Yashash joyi (viloyat, tuman, mahalla)
-# - Ish/ta'lim joyi
+# - Ish/ta‘lim joyi
 # - Telefon raqami
 
-# Ma'lumotlar uzbek tilida kiritiladi.
+# Ma‘lumotlar uzbek tilida kiritiladi.
 # """
 # import asyncio
 
@@ -50,7 +50,7 @@
 #             contest=CONTEST,
 #             direction=DIRECTION,
 #         )
-#         print(f"Foydalanuvchi {USER_ID} muvaffaqiyatli qo‘shildi/yangi ma'lumotlar kiritildi.")
+#         print(f"Foydalanuvchi {USER_ID} muvaffaqiyatli qo‘shildi/yangi ma‘lumotlar kiritildi.")
 
 # if __name__ == "__main__":
 #     asyncio.run(main())

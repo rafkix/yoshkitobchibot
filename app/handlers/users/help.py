@@ -19,7 +19,7 @@ Bilimingizni sinab ko‘rish uchun testlar. To‘g‘ri javoblar uchun ball beri
 Barcha ishtirokchilar orasidagi o‘rningizni va top 10 foydalanuvchilarni ko‘ring.
 
 👤 <b>Profil</b>
-Shaxsiy ma'lumotlaringiz: ism, yashash joyi, telefon, tanlov va umumiy ballingiz.
+Shaxsiy ma‘lumotlaringiz: ism, yashash joyi, telefon, tanlov va umumiy ballingiz.
 
 🗞 <b>Targ‘ibot</b>
 Do‘stlaringizni taklif qiling. Har bir ro‘yxatdan o‘tgan do‘st uchun bonus ball olasiz.

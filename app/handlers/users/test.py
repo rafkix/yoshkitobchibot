@@ -84,7 +84,7 @@ def result_text(result: dict, expired: bool = False) -> str:
         f"✅ To‘g‘ri javoblar: <b>{result['correct']}/{result['total']}</b>\n"
         f"📝 Javob berildi: <b>{result['answered']}</b> ta\n"
         f"📊 Rasch ball: <b>{result['score']}</b> / 100\n"
-        f"📈 Theta (θ): {result['theta']}\n\n"
+        f"📈 Theta (θ): {result['theta‘]}\n\n"
         f"🏆 Ball reytingga qo‘shildi!"
     )
 
@@ -113,7 +113,7 @@ async def test_list_show(message: Message):
 
 
 # =========================================================
-# TEST TANLASH — ma'lumot + Boshlash tugmasi
+# TEST TANLASH — ma‘lumot + Boshlash tugmasi
 # =========================================================
 
 

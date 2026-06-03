@@ -93,7 +93,7 @@ async def profile_handler(message: Message) -> None:
                 "📄 Profil topilmadi. Iltimos, ro‘yxatdan o‘ting."
             )
 
-        # ✅ Session ichida barcha ma'lumotlarni olamiz
+        # ✅ Session ichida barcha ma‘lumotlarni olamiz
         location = (
             ", ".join(
                 part for part in [user.region, user.district, user.neighborhood] if part
@@ -102,7 +102,7 @@ async def profile_handler(message: Message) -> None:
         )
 
         text = (
-            "<b>Sizning ma'lumotlaringiz:</b>\n\n"
+            "<b>Sizning ma‘lumotlaringiz:</b>\n\n"
             f"<b>ID:</b> <code>{message.from_user.id}</code>\n\n"
             f"<b>F.I.Sh.:</b> {user.full_name or '—'}\n"
             f"<b>Tug‘ilgan sana:</b> {format_birth_date(user.birth_date)}\n"
