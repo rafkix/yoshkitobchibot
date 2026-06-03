@@ -78,6 +78,7 @@ class Test(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     starts_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     questions: Mapped[List["Question"]] = relationship(
         "Question", back_populates="test", cascade="all, delete-orphan"
@@ -96,12 +97,11 @@ class Question(Base):
     option_b: Mapped[str] = mapped_column(Text)
     option_c: Mapped[str] = mapped_column(Text)
     option_d: Mapped[str] = mapped_column(Text)
-    correct: Mapped[str] = mapped_column(String(10))  # 'a', 'b', 'c' yoki 'd'
+    correct: Mapped[str] = mapped_column(String(10))
     difficulty: Mapped[float] = mapped_column(default=0.0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)  # ✅
 
     test: Mapped["Test"] = relationship("Test", back_populates="questions")
-
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 class TestSession(Base):
