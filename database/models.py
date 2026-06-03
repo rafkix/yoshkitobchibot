@@ -41,7 +41,7 @@ class ContestStatus(str, enum.Enum):
     DRAFT = "draft"
     ACTIVE = "active"
     FINISHED = "finished"
-    
+
 
 class User(Base):
     __tablename__ = "users"
@@ -100,6 +100,8 @@ class Question(Base):
     difficulty: Mapped[float] = mapped_column(default=0.0)
 
     test: Mapped["Test"] = relationship("Test", back_populates="questions")
+
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 class TestSession(Base):
