@@ -19,7 +19,7 @@ STRINGS = {
         ),
         "select_reg": "📍 **Marhamat, viloyatingizni tanlang:**",
         "select_city": "🏘 **o‘zingizga yaqin shaharni tanlang:**",
-        "main_menu_text": "✨ **Asosiy menyu**\n\nBarcha ma‘lumotlar siz uchun tayyor 👇",
+        "main_menu_text": "✨ **Asosiy menyu**\n\nBarcha ma'lumotlar siz uchun tayyor 👇",
         "today_btn": "🗓 Bugungi taqvim",
         "full_btn": "📅 To‘liq taqvim",
         "duas_btn": "🤲 Duolar",
@@ -92,13 +92,13 @@ DUAS = {
     "uz": {
         "saharlik_title": "🤲 **Saharlik (Og‘iz yopish) duosi:**",
         "saharlik_arabic": "نَوَيْتُ أَنْ أَصُومَ صَوْمَ شَهْرِ رَمَضَانَ مِنَ الْفَجْرِ إِلَى الْمَغْرِبِ، خَالِصًا لِلهِ تَعَالَى. أَللهُ أَكْبَرُ.",
-        "saharlik_trans": "_Navaytu an asuma sovma shahri ramazona minal fajri ilal mag‘ribi, xolisan lillahi ta‘ala. Allohu akbar._",
-        "saharlik_mean": "**Ma‘nosi:** Ramazon oyining ro‘zasini tongdan kun botguncha xolis Alloh uchun tutishni niyat qildim. Alloh buyukdir.",
+        "saharlik_trans": "_Navaytu an asuma sovma shahri ramazona minal fajri ilal mag‘ribi, xolisan lillahi ta'ala. Allohu akbar._",
+        "saharlik_mean": "**Ma'nosi:** Ramazon oyining ro‘zasini tongdan kun botguncha xolis Alloh uchun tutishni niyat qildim. Alloh buyukdir.",
         
         "iftorlik_title": "🍱 **Iftorlik (Og‘iz ochish) duosi:**",
         "iftorlik_arabic": "اَللَّهُمَّ لَكَ صُمْتُ وَبِكَ آمَنْتُ وَعَلَيْكَ تَوَكَّلْتُ وَعَلَى رِزْقِكَ أَفْطَرْتُ، فَاغْفِرْ لِي مَا قَدَّمْتُ وَمَا أَخَّرْتُ يَا غَفَّارُ.",
         "iftorlik_trans": "_Allohumma laka sumtu va bika amantu va 'alayka tavakkaltu va 'ala rizqika aftartu, fag‘firli ma qoddamtu va ma axxortu ya g‘offar._",
-        "iftorlik_mean": "**Ma‘nosi:** Ey Alloh, ushbu ro‘zani Sen uchun tutdim va Senga iymon keltirdim va Senga tavakkal qildim va bergan rizqing bilan iftor qildim. Ey gunohlarni afv etuvchi Zot, mening avvalgi va keyingi gunohlarimni mag‘firat qil."
+        "iftorlik_mean": "**Ma'nosi:** Ey Alloh, ushbu ro‘zani Sen uchun tutdim va Senga iymon keltirdim va Senga tavakkal qildim va bergan rizqing bilan iftor qildim. Ey gunohlarni afv etuvchi Zot, mening avvalgi va keyingi gunohlarimni mag‘firat qil."
     },
     "kr": {
         "saharlik_title": "🤲 **Саҳарлик (Оғиз ёпиш) дуоси:**",

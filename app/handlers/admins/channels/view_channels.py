@@ -41,7 +41,7 @@ async def show_channels_list(callback: CallbackQuery):
     text = (
         "📋 <b>Majburiy obuna kanallari ro‘yxati:</b>\n\n"
         f"🔢 <b>Jami:</b> {total} ta\n\n"
-        "👇 Kerakli kanal ustiga bosib ma‘lumotlarini ko‘rishingiz mumkin"
+        "👇 Kerakli kanal ustiga bosib ma'lumotlarini ko‘rishingiz mumkin"
     )
 
     await callback.message.edit_text(

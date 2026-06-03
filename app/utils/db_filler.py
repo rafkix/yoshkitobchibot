@@ -34,7 +34,7 @@ WEEKDAY_MAP = {
 }
 
 async def scrape_city(city_slug: str):
-    """Saytdan ma‘lumotni scrape qilish"""
+    """Saytdan ma'lumotni scrape qilish"""
     url = f"https://namozvaqti.uz/ramazon/{city_slug}"
     headers = {"User-Agent": "Mozilla/5.0"}
 
@@ -72,7 +72,7 @@ async def main():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     
-    print("🌙 Ramazon 2026 ma‘lumotlari bazaga yuklanmoqda...")
+    print("🌙 Ramazon 2026 ma'lumotlari bazaga yuklanmoqda...")
 
     async with async_session() as session:
         for city in CITIES:
@@ -90,7 +90,7 @@ async def main():
             
             await asyncio.sleep(0.3) # Sayt bloklamasligi uchun
 
-    print("\n✨ Barcha ma‘lumotlar muvaffaqiyatli saqlandi!")
+    print("\n✨ Barcha ma'lumotlar muvaffaqiyatli saqlandi!")
 
 if __name__ == "__main__":
     asyncio.run(main())

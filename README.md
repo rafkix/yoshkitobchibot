@@ -17,10 +17,10 @@
 * **Logika:** `user_service.py` ichidagi `complete_registration()` funksiyasi endi statik qiymat emas, balki `SettingsService` orqali bazadagi joriy ballni o‘qiydi.
 * **Foydalanuvchi interfeysi:** Targ‘ibot sahifasida joriy ball qiymati (`+N ball`) real vaqtda yangilanib turadi.
 
-### 2. 👤 Profil ma‘lumotlarini tahrirlash
+### 2. 👤 Profil ma'lumotlarini tahrirlash
 * **Fayl:** `app/handlers/users/menu.py` 🔄
-* **Imkoniyat:** Profil menyusiga interaktiv `✏️ Ma‘lumotlarni o‘zgartirish` inline-tugmasi qo‘shildi.
-* Foydalanuvchilar quyidagi ma‘lumotlarni to‘liq qayta tahrirlashlari mumkin:
+* **Imkoniyat:** Profil menyusiga interaktiv `✏️ Ma'lumotlarni o‘zgartirish` inline-tugmasi qo‘shildi.
+* Foydalanuvchilar quyidagi ma'lumotlarni to‘liq qayta tahrirlashlari mumkin:
   * 📝 **F.I.Sh.** (To‘liq ism-sharif)
   * 🏢 **Ish/o‘qish joyi** (Muassasa nomi)
   * 📍 **Mahalla** (Yashash hududi)
