@@ -26,25 +26,25 @@ class ContestService:
             return None
 
     async def get_contest_by_id(self, contest_id: int) -> ReferralContest | None:
-        """Konkursni ID bo'yicha tezkor yuklash (Optimallashgan)."""
+        """Konkursni ID bo‘yicha tezkor yuklash (Optimallashgan)."""
         try:
             result = await self.session.execute(
                 select(ReferralContest).where(ReferralContest.id == contest_id)
             )
             return result.scalar_one_or_none()
         except Exception as e:
-            logger.error(f"Konkursni ID bo'yicha olishda xatolik: {e}")
+            logger.error(f"Konkursni ID bo‘yicha olishda xatolik: {e}")
             return None
 
     async def get_all_contests(self) -> list[ReferralContest]:
-        """Barcha yaratilgan konkurslar ro'yxatini vaqti bo'yicha saralab beradi."""
+        """Barcha yaratilgan konkurslar ro‘yxatini vaqti bo‘yicha saralab beradi."""
         try:
             result = await self.session.execute(
                 select(ReferralContest).order_by(desc(ReferralContest.created_at))
             )
             return list(result.scalars().all())
         except Exception as e:
-            logger.error(f"Konkurslar ro'yxatini yuklashda xatolik: {e}")
+            logger.error(f"Konkurslar ro‘yxatini yuklashda xatolik: {e}")
             return []
 
     async def create_contest(
@@ -77,7 +77,7 @@ class ContestService:
             return None
 
     async def start_contest(self, contest_id: int) -> ReferralContest | None:
-        """Konkursni ACTIVE holatga o'tkazadi va vaqtini belgilaydi."""
+        """Konkursni ACTIVE holatga o‘tkazadi va vaqtini belgilaydi."""
         try:
             contest = await self.get_contest_by_id(contest_id)
             if not contest:
@@ -94,7 +94,7 @@ class ContestService:
             return None
 
     async def stop_contest(self, contest_id: int) -> ReferralContest | None:
-        """Konkursni FINISHED holatiga o'tkazadi."""
+        """Konkursni FINISHED holatiga o‘tkazadi."""
         try:
             contest = await self.get_contest_by_id(contest_id)
             if not contest:
@@ -107,13 +107,13 @@ class ContestService:
             return contest
         except Exception as e:
             await self.session.rollback()
-            logger.error(f"Konkursni to'xtatishda xatolik: {e}")
+            logger.error(f"Konkursni to‘xtatishda xatolik: {e}")
             return None
 
     async def get_eligible_users_with_counts(
         self, contest: ReferralContest
     ) -> list[tuple[User, int]]:
-        """Konkursning minimal referal shartini bajargan foydalanuvchilar ro'yxati."""
+        """Konkursning minimal referal shartini bajargan foydalanuvchilar ro‘yxati."""
         try:
             referrals = (
                 select(
@@ -143,7 +143,7 @@ class ContestService:
     async def pick_winner(
         self, contest_id: int
     ) -> tuple[ReferralContest | None, User | None]:
-        """Weighted Random algoritmi orqali g'olibni aniqlash."""
+        """Weighted Random algoritmi orqali g‘olibni aniqlash."""
         try:
             contest = await self.get_contest_by_id(contest_id)
             if not contest:
@@ -165,11 +165,11 @@ class ContestService:
             return contest, winner
         except Exception as e:
             await self.session.rollback()
-            logger.error(f"G'olibni aniqlashda xatolik: {e}")
+            logger.error(f"g‘olibni aniqlashda xatolik: {e}")
             return None, None
 
     async def delete_contest(self, contest_id: int) -> bool:
-        """Konkursni bazadan butunlay o'chirish."""
+        """Konkursni bazadan butunlay o‘chirish."""
         try:
             contest = await self.get_contest_by_id(contest_id)
             if not contest:
@@ -179,5 +179,5 @@ class ContestService:
             return True
         except Exception as e:
             await self.session.rollback()
-            logger.error(f"Konkursni o'chirishda xatolik: {e}")
+            logger.error(f"Konkursni o‘chirishda xatolik: {e}")
             return False

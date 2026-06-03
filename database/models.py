@@ -14,10 +14,10 @@ from sqlalchemy import (
     String,
     Text,
     func,
-    JSON,  # 💡 O'zgarish: JSON import qilindi
+    JSON,  # 💡 o‘zgarish: JSON import qilindi
 )
 
-# ❌ O'chirildi: from sqlalchemy.dialects.postgresql import JSONB
+# ❌ o‘chirildi: from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -115,7 +115,7 @@ class TestSession(Base):
         Integer, ForeignKey("tests.id", ondelete="CASCADE")
     )
 
-    # 💡 O'zgarish: JSONB larning o'rniga universal JSON qo'yildi
+    # 💡 o‘zgarish: JSONB larning o‘rniga universal JSON qo‘yildi
     question_ids: Mapped[List[int]] = mapped_column(JSON)
     answers: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
 

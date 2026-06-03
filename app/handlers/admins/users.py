@@ -154,7 +154,7 @@ def user_detail_keyboard(
     )
 
     kb.button(
-        text="🗑 O'chirish",
+        text="🗑 o‘chirish",
         callback_data=f"admudel:{user_id}:{back_page}:{filter_mode}",
     )
 
@@ -184,7 +184,7 @@ def user_detail_keyboard(
 
 
 def confirm_delete_keyboard(user_id: int, back_page: int = 0, filter_mode: str = "all"):
-    """O'chirishni tasdiqlash paneli"""
+    """o‘chirishni tasdiqlash paneli"""
     builder = InlineKeyboardBuilder()
     builder.button(
         text="🛑 Ha, butunlay o‘chirilsin",
@@ -212,18 +212,18 @@ def user_detail_text(user, referrals_total: int, referrals_registered: int) -> s
     )
 
     return (
-        "<b>👤 FOYDALANUVCHINING TO'LIQ PROFILI</b>\n"
+        "<b>👤 FOYDALANUVCHINING To‘LIQ PROFILI</b>\n"
         "📂 <i>ID:</i> <code>{user.user_id}</code>\n"
         "───────────────────\n"
         f"📋 <b>Shaxsiy ma'lumotlar:</b>\n"
         f" 👤 <b>F.I.Sh:</b> {user.full_name or '—'}\n"
-        f" 📅 <b>Tug'ilgan sana:</b> {user.birth_date or '—'}\n"
+        f" 📅 <b>Tug‘ilgan sana:</b> {user.birth_date or '—'}\n"
         f" 📞 <b>Telefon:</b> <code>{user.phone_number or '—'}</code>\n\n"
         f"📍 <b>Manzil ma'lumotlari:</b>\n"
         f" 🗺 <b>Viloyat:</b> {user.region or '—'}\n"
         f" 🏙 <b>Tuman:</b> {user.district or '—'}\n"
         f" 🏡 <b>Mahalla:</b> {user.neighborhood or '—'}\n"
-        f" 🏫 <b>Ish/O'qish:</b> {user.workplace or '—'}\n\n"
+        f" 🏫 <b>Ish/o‘qish:</b> {user.workplace or '—'}\n\n"
         f"🏆 <b>Tanlov holati:</b>\n"
         f" 🎮 <b>Tanlov:</b> {contest}\n"
         f" 📊 <b>Toifa:</b> {direction}\n\n"
@@ -265,7 +265,7 @@ def build_list_text(
     if total > 0:
         text += f" | Ko‘rsatilmoqda: <b>{start + 1}–{end}</b>"
     if search_query:
-        text += f"\n🔍 Qidiruv so'rovi: <code>{search_query}</code>"
+        text += f"\n🔍 Qidiruv so‘rovi: <code>{search_query}</code>"
     return text
 
 
@@ -291,7 +291,7 @@ async def admin_users_menu(message: Message, state: FSMContext):
         f"📊 <b>Jami foydalanuvchilar:</b> {total} ta\n"
         f" 🟢 Ro‘yxatdan o‘tganlar: <b>{reg}</b> ta\n"
         f" 🟡 Chala ro‘yxatdagilar: <b>{unreg}</b> ta\n\n"
-        "👇 Quyidagi ro'yxatdan kerakli foydalanuvchini tanlang:"
+        "👇 Quyidagi ro‘yxatdan kerakli foydalanuvchini tanlang:"
     )
 
     await message.answer(
@@ -391,7 +391,7 @@ async def admin_toggle_status(callback: CallbackQuery):
         referrals_registered = await service.get_registered_referrals_count(user_id)
         user.is_registered = new_status
 
-    await callback.answer("✅ Status muvaffaqiyatli o'zgartirildi!", show_alert=True)
+    await callback.answer("✅ Status muvaffaqiyatli o‘zgartirildi!", show_alert=True)
     await callback.message.edit_text(
         user_detail_text(user, referrals_total, referrals_registered),
         parse_mode="HTML",
@@ -407,9 +407,9 @@ async def admin_delete_confirm(callback: CallbackQuery):
     filter_mode = parts[3] if len(parts) > 3 else "all"
 
     await callback.message.edit_text(
-        f"⚠️ <b>DIQQAT! Foydalanuvchini o'chirish</b>\n\n"
-        f"Rostdan ham ID: <code>{user_id}</code> bo'lgan foydalanuvchini bazadan butunlay o'chirmoqchimisiz?\n"
-        f"⚠️ <i>Bu amalni aslo orqaga qaytarib bo'lmaydi!</i>",
+        f"⚠️ <b>DIQQAT! Foydalanuvchini o‘chirish</b>\n\n"
+        f"Rostdan ham ID: <code>{user_id}</code> bo‘lgan foydalanuvchini bazadan butunlay o‘chirmoqchimisiz?\n"
+        f"⚠️ <i>Bu amalni aslo orqaga qaytarib bo‘lmaydi!</i>",
         parse_mode="HTML",
         reply_markup=confirm_delete_keyboard(user_id, back_page, filter_mode),
     )
@@ -432,10 +432,10 @@ async def admin_delete_ok(callback: CallbackQuery, state: FSMContext):
 
     if not deleted:
         return await callback.answer(
-            "❌ O'chirish jarayonida xatolik yuz berdi", show_alert=True
+            "❌ o‘chirish jarayonida xatolik yuz berdi", show_alert=True
         )
 
-    await callback.answer("🗑 Foydalanuvchi muvaffaqiyatli o'chirildi", show_alert=True)
+    await callback.answer("🗑 Foydalanuvchi muvaffaqiyatli o‘chirildi", show_alert=True)
 
     async with session_maker() as session:
         service = UserService(session)
@@ -480,7 +480,7 @@ async def admin_edit_score_start(callback: CallbackQuery, state: FSMContext):
     await state.set_state(UserSearchState.waiting_score)
 
     await callback.message.answer(
-        f"🎯 <b>Referal ballni o'zgartirish</b>\n\n"
+        f"🎯 <b>Referal ballni o‘zgartirish</b>\n\n"
         f"Foydalanuvchi ID: <code>{user_id}</code>\n"
         f"Joriy ball miqdori: <b>{user.referral_score} b</b>\n\n"
         "📝 Yangi referal ball qiymatini kiriting:",
@@ -511,7 +511,7 @@ async def admin_edit_score_save(message: Message, state: FSMContext):
 
     async with session_maker() as session:
         service = UserService(session)
-        # Sening Servisingdagi to'g'ri metodga ulandi
+        # Sening Servisingdagi to‘g‘ri metodga ulandi
         user = await service.set_referral_score(user_id, new_score)
 
     if not user:
@@ -520,7 +520,7 @@ async def admin_edit_score_save(message: Message, state: FSMContext):
         )
 
     await message.answer(
-        f"✅ ID: <code>{user_id}</code> foydalanuvchining referal bali <b>{new_score}</b> qilib o'rnatildi.\n"
+        f"✅ ID: <code>{user_id}</code> foydalanuvchining referal bali <b>{new_score}</b> qilib o‘rnatildi.\n"
         f"📊 Yangi jami ball: <b>{user.total_score}</b>",
         parse_mode="HTML",
         reply_markup=admin_menu(),
@@ -551,7 +551,7 @@ async def admin_export_excel(callback: CallbackQuery, bot: Bot, state: FSMContex
             "❌ Eksport qilish uchun foydalanuvchilar mavjud emas."
         )
 
-    # Excel builder funksiyangiz o'zgarmasdan qoldi
+    # Excel builder funksiyangiz o‘zgarmasdan qoldi
     buf = build_excel(users)
     filename = f"users_{filter_mode}_{datetime.now().strftime('%d_%m')}.xlsx"
 
@@ -571,7 +571,7 @@ async def admin_message_to_user_start(callback: CallbackQuery, state: FSMContext
     await callback.message.answer(
         f"✉️ <b>Foydalanuvchiga shaxsiy xabar yuborish</b>\n\n"
         f"Kimga: <code>{user_id}</code>\n\n"
-        f"✍️ Xabar matnini kiriting (HTML format qo'llab-quvvatlanadi):",
+        f"✍️ Xabar matnini kiriting (HTML format qo‘llab-quvvatlanadi):",
         parse_mode="HTML",
         reply_markup=cancel_reply_keyboard(),
     )
@@ -621,7 +621,7 @@ async def admin_users_search_or_message(message: Message, state: FSMContext):
             )
         except Exception as e:
             await message.answer(
-                f"❌ Xabarni yetkazib bo'lmadi: {e}", reply_markup=admin_menu()
+                f"❌ Xabarni yetkazib bo‘lmadi: {e}", reply_markup=admin_menu()
             )
         return
 
@@ -641,7 +641,7 @@ async def admin_users_search_or_message(message: Message, state: FSMContext):
     total = len(users)
     if not users:
         return await message.answer(
-            f"🤷‍♂️ Kechirasiz, <b>'{query}'</b> so'rovi bo'yicha hech qanday ma'lumot topilmadi.",
+            f"🤷‍♂️ Kechirasiz, <b>'{query}'</b> so‘rovi bo‘yicha hech qanday ma'lumot topilmadi.",
             parse_mode="HTML",
             reply_markup=admin_menu(),
         )
@@ -665,7 +665,7 @@ async def admin_users_back(callback: CallbackQuery, state: FSMContext):
 
 
 def build_excel(users: list) -> BytesIO:
-    # Berilgan mukammal Excel yaratish funksiyangiz o'z holaticha integratsiya qilindi
+    # Berilgan mukammal Excel yaratish funksiyangiz o‘z holaticha integratsiya qilindi
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Foydalanuvchilar"

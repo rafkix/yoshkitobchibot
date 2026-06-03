@@ -1,3 +1,5 @@
+# app/handlers/users/tests.py
+
 import asyncio
 
 from aiogram import Router, F
@@ -133,19 +135,17 @@ async def pick_test(callback: CallbackQuery):
             await callback.answer("Bu test hozir aktiv emas.", show_alert=True)
             return
 
+        # FIXED: faqat is_active=True savollar sanaladi
         q_count = await session.scalar(
             select(func.count(Question.id)).where(
                 Question.test_id == test_id,
                 Question.is_active.is_(True),
             )
         )
-        # SettingsService mavjud emas — test_service konstantalarini ishlatamiz
         max_questions = TEST_MAX_QUESTIONS
         seconds_per_question = SECONDS_PER_QUESTION
-
         availability_str = service.availability_text(test)
 
-    # Savol soniga qarab vaqtni hisoblash
     actual_count = min(q_count or 0, max_questions)
     duration_sec = actual_count * seconds_per_question
     duration_str = format_duration(duration_sec)
@@ -190,7 +190,6 @@ async def start_test(callback: CallbackQuery):
     test_id = int(callback.data.split(":")[1])
     user_id = callback.from_user.id
 
-    # FIX: send_question ni session ichida chaqirish (ochiq session kerak)
     async with session_maker() as session:
         service = TestService(session)
         session_obj, status = await service.get_or_create_session(user_id, test_id)
@@ -223,6 +222,13 @@ async def start_test(callback: CallbackQuery):
             await callback.answer()
             return
 
+        if status == "error":
+            await callback.message.edit_text(
+                "❌ Xatolik yuz berdi. Keyinroq urinib ko‘ring."
+            )
+            await callback.answer()
+            return
+
         total_q = len(session_obj.question_ids)
         duration_str = format_duration(session_obj.duration_seconds)
 
@@ -248,11 +254,8 @@ async def start_test(callback: CallbackQuery):
             )
 
         await callback.answer()
-
-        # FIX: send_question session ichida — ochiq DB ulanish bilan
         await send_question(callback.message, session_obj, service)
 
-    # FIX: asyncio.create_task session yopilgandan keyin — to‘g‘ri
     asyncio.create_task(
         auto_finish_timer(user_id, callback.message.chat.id, callback.bot, test_id)
     )
@@ -264,9 +267,8 @@ async def start_test(callback: CallbackQuery):
 
 
 async def auto_finish_timer(user_id: int, chat_id: int, bot, test_id: int):
-    # FIX: birinchi blokda ham service yaratish kerak edi
     async with session_maker() as session:
-        service = TestService(session)  # ✅ avval yo‘q edi — NameError tuzatildi
+        service = TestService(session)
         result = await session.execute(
             select(TestSession).where(
                 TestSession.user_id == user_id,
@@ -317,6 +319,7 @@ async def answer_handler(callback: CallbackQuery):
     async with session_maker() as session:
         service = TestService(session)
 
+        # FIXED: test_id bo‘yicha ham filtrlanadi
         result = await session.execute(
             select(TestSession).where(
                 TestSession.user_id == user_id,
@@ -328,6 +331,13 @@ async def answer_handler(callback: CallbackQuery):
         if not session_obj:
             await callback.answer(
                 "Sessiya topilmadi yoki test tugallangan.", show_alert=True
+            )
+            return
+
+        # Savol bu sessiyaga tegishli ekanligini tekshirish
+        if question_id not in session_obj.question_ids:
+            await callback.answer(
+                "Bu savol sizning testingizga tegishli emas.", show_alert=True
             )
             return
 
@@ -355,5 +365,4 @@ async def answer_handler(callback: CallbackQuery):
             res = await service.finish_session(session_obj, user_id)
             await callback.message.edit_text(result_text(res), parse_mode="HTML")
         else:
-            # FIX: send_question session ichida chaqirilmoqda — to‘g‘ri
             await send_question(callback, session_obj, service)

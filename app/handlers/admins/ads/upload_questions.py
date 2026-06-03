@@ -1,3 +1,5 @@
+# app/handlers/admins/ads/upload_questions.py
+
 import io
 
 import openpyxl
@@ -155,7 +157,6 @@ async def create_test_prompt(callback: CallbackQuery):
     await callback.answer()
 
 
-# ← WaitingTestTitle filteri: FAQAT _pending_upload[user_id] == -1 bo‘lganda ishlaydi
 @router.message(F.text, WaitingTestTitle(), IsAdmin(admin_ids=ADMINS))
 async def handle_test_title(message: Message):
     title = message.text.strip()
@@ -195,7 +196,11 @@ async def list_tests(callback: CallbackQuery):
     async with session_maker() as session:
         lines = ["📋 <b>Testlar ro‘yxati:</b>\n"]
         for t in tests:
-            q_count = await session.scalar(
+            # Jami va faol savollar
+            q_total = await session.scalar(
+                select(func.count(Question.id)).where(Question.test_id == t.id)
+            )
+            q_active = await session.scalar(
                 select(func.count(Question.id)).where(
                     Question.test_id == t.id,
                     Question.is_active.is_(True),
@@ -203,7 +208,8 @@ async def list_tests(callback: CallbackQuery):
             )
             icon = "✅" if t.is_active else "❌"
             lines.append(
-                f"{icon} <b>{t.title}</b>\n   🆔 {t.id} | 📝 {q_count} ta savol"
+                f"{icon} <b>{t.title}</b>\n"
+                f"   🆔 {t.id} | 📝 {q_active}/{q_total} ta faol savol"
             )
 
     await callback.message.edit_text(
@@ -463,16 +469,17 @@ async def show_stat(callback: CallbackQuery):
         for t in tests:
             active = await session.scalar(
                 select(func.count(Question.id)).where(
-                    Question.test_id == t.id, Question.is_active.is_(True)
+                    Question.test_id == t.id,
+                    Question.is_active.is_(True),
                 )
             )
             total = await session.scalar(
                 select(func.count(Question.id)).where(Question.test_id == t.id)
             )
-            grand_total += total
+            grand_total += total or 0
             lines.append(
                 f"📋 <b>{t.title}</b>\n"
-                f"   Jami: {total} | Faol: {active} | Nofaol: {total - active}\n"
+                f"   Jami: {total} | Faol: {active} | Nofaol: {(total or 0) - (active or 0)}\n"
             )
         lines.append(f"\n🔢 Umumiy: {grand_total} ta")
 

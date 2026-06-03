@@ -47,12 +47,10 @@ class TestService:
             return "ended"
         return "available"
 
-    # FIX: handler chaqiradigan metod — availability_status wrapperi
     def is_available(self, test: Test) -> bool:
         """Test hozir foydalanish uchun ochiqmi."""
         return self.availability_status(test) == "available"
 
-    # FIX: handler pick_test da ishlatadi
     def availability_text(self, test: Test) -> str:
         """Test holati uchun o‘qilishi oson matn."""
         status = self.availability_status(test)
@@ -66,7 +64,6 @@ class TestService:
             return "Nofaol"
         return "Aktiv"
 
-    # FIX: handler test_list_show da chaqiradi
     async def get_available_tests(self) -> list[Test]:
         """Hozir foydalanish mumkin bo‘lgan testlar ro‘yxati."""
         try:
@@ -124,12 +121,14 @@ class TestService:
                 if self.is_expired(session_obj):
                     await self.finish_session(session_obj, user_id)
                     return None, "completed"
-                # FIX: handler "continued" statusini tekshiradi
                 return session_obj, "continued"
 
-            # Savollar IDlarini yuklash va tasodifiy tanlash
+            # FIXED: faqat is_active=True savollar tanlanadi
             q_res = await self.session.execute(
-                select(Question.id).where(Question.test_id == test_id)
+                select(Question.id).where(
+                    Question.test_id == test_id,
+                    Question.is_active.is_(True),
+                )
             )
             all_q_ids = list(q_res.scalars().all())
             if not all_q_ids:
@@ -152,7 +151,6 @@ class TestService:
             self.session.add(new_session)
             await self.session.commit()
             await self.session.refresh(new_session)
-            # FIX: handler "new" statusini tekshiradi
             return new_session, "new"
         except Exception as e:
             await self.session.rollback()
@@ -197,7 +195,7 @@ class TestService:
     async def save_answer(
         self, session_obj: TestSession, question_id: int, answer: str
     ) -> bool:
-        """Foydalanuvchi javobini JSONB formatida kesh xotiraga yozish."""
+        """Foydalanuvchi javobini saqlash."""
         try:
             if self.is_expired(session_obj) or session_obj.is_completed:
                 return False
@@ -251,7 +249,6 @@ class TestService:
                 if is_correct:
                     correct_count += 1
 
-            # Rasch modeli (IRT) bo‘yicha yashirin qobiliyat va ball hisoblash
             theta = rasch_ability(correct_list, difficulty_list)
             score = theta_to_score(theta)
 
@@ -260,7 +257,6 @@ class TestService:
             session_obj.completed_at = self._now()
             self.session.add(session_obj)
 
-            # Foydalanuvchi umumiy balansini yangilash
             from database.services.user_service import UserService
 
             u_service = UserService(self.session)
@@ -272,7 +268,6 @@ class TestService:
 
             await self.session.commit()
 
-            # FIX: handler result_text() uchun answered va theta ham kerak
             return {
                 "total": len(q_ids),
                 "correct": correct_count,

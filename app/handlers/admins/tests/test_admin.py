@@ -66,7 +66,6 @@ def tests_list_admin_keyboard(tests: list) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for t in tests:
         icon = "🟢" if t.is_active else "🔴"
-        q_label = ""
         builder.button(
             text=f"{icon} {t.title[:35]}",
             callback_data=f"ta_view:{t.id}",
@@ -164,7 +163,6 @@ async def ta_list(callback: CallbackQuery):
         result = await session.execute(select(Test).order_by(Test.id))
         tests = result.scalars().all()
 
-        # Har bir test uchun savol sonini olamiz
         test_q_counts = {}
         for t in tests:
             count = await session.scalar(
@@ -238,6 +236,9 @@ async def ta_view(callback: CallbackQuery):
         )
 
     status = "🟢 Aktiv" if test.is_active else "🔴 Faolsiz"
+    # FIXED: created_at None bo‘lsa crash qilmaydi
+    created_str = test.created_at.strftime("%Y-%m-%d") if test.created_at else "—"
+
     text = (
         f"📋 <b>{test.title}</b>\n\n"
         f"📌 Holat: {status}\n"
@@ -246,8 +247,8 @@ async def ta_view(callback: CallbackQuery):
         f"📊 <b>Sessiyalar:</b>\n"
         f"  Jami: {session_count} ta\n"
         f"  ✅ Tugatilgan: {completed_count} ta\n"
-        f"  ⏳ Davom etayotgan: {session_count - completed_count} ta\n\n"
-        f"🗓 Yaratilgan: {test.created_at.strftime('%Y-%m-%d')}"
+        f"  ⏳ Davom etayotgan: {(session_count or 0) - (completed_count or 0)} ta\n\n"
+        f"🗓 Yaratilgan: {created_str}"
     )
     await callback.message.edit_text(
         text,
@@ -445,11 +446,11 @@ async def ta_stats(callback: CallbackQuery):
         "📊 <b>Test statistikasi</b>\n\n"
         f"📋 Jami testlar: <b>{total_tests}</b> ta\n"
         f"  🟢 Aktiv: <b>{active_tests}</b> ta\n"
-        f"  🔴 Faolsiz: <b>{total_tests - active_tests}</b> ta\n\n"
+        f"  🔴 Faolsiz: <b>{(total_tests or 0) - (active_tests or 0)}</b> ta\n\n"
         f"❓ Faol savollar: <b>{total_questions}</b> ta\n\n"
         f"📝 Jami sessiyalar: <b>{total_sessions}</b> ta\n"
         f"  ✅ Tugatilgan: <b>{completed_sessions}</b> ta\n"
-        f"  ⏳ Davom etayotgan: <b>{total_sessions - completed_sessions}</b> ta"
+        f"  ⏳ Davom etayotgan: <b>{(total_sessions or 0) - (completed_sessions or 0)}</b> ta"
     )
     await callback.message.edit_text(
         text,

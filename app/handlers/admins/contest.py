@@ -77,16 +77,16 @@ def contest_detail_keyboard(contest) -> InlineKeyboardMarkup:
     if contest.status == ContestStatus.DRAFT:
         builder.button(text="▶️ Boshlash", callback_data=f"cn_start:{contest.id}")
     elif contest.status == ContestStatus.ACTIVE:
-        builder.button(text="⏹ To'xtatish", callback_data=f"cn_stop:{contest.id}")
+        builder.button(text="⏹ To‘xtatish", callback_data=f"cn_stop:{contest.id}")
         builder.button(
-            text="🎲 G'olibni tanlash", callback_data=f"cn_pick:{contest.id}"
+            text="🎲 g‘olibni tanlash", callback_data=f"cn_pick:{contest.id}"
         )
         builder.button(
             text="👥 Ishtirokchilar", callback_data=f"cn_eligible:{contest.id}"
         )
 
-    builder.button(text="🗑 O'chirish", callback_data=f"cn_delete:{contest.id}")
-    builder.button(text="📋 Ro'yxatga qaytish", callback_data="cn_list")
+    builder.button(text="🗑 o‘chirish", callback_data=f"cn_delete:{contest.id}")
+    builder.button(text="📋 Ro‘yxatga qaytish", callback_data="cn_list")
     builder.adjust(1)
     return builder.as_markup()
 
@@ -94,7 +94,7 @@ def contest_detail_keyboard(contest) -> InlineKeyboardMarkup:
 def confirm_keyboard(yes_cb: str, no_cb: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="✅ Ha", callback_data=yes_cb)
-    builder.button(text="❌ Yo'q", callback_data=no_cb)
+    builder.button(text="❌ Yo‘q", callback_data=no_cb)
     builder.adjust(2)
     return builder.as_markup()
 
@@ -121,10 +121,10 @@ def contest_text(c) -> str:
         f"📝 <b>Tavsif:</b> {c.description or '—'}\n"
         f"💬 <b>Foydalanuvchi matni:</b> {c.button_text or '—'}\n"
         f"👥 <b>Min referal:</b> {c.min_referrals} ta\n"
-        f"🎁 <b>Sovg'a:</b> {c.prize_description or '—'}\n\n"
+        f"🎁 <b>Sovg‘a:</b> {c.prize_description or '—'}\n\n"
         f"🗓 <b>Boshlangan:</b> {started}\n"
         f"🗓 <b>Tugagan:</b> {ended}\n"
-        f"🥇 <b>G'olib:</b> {winner}"
+        f"🥇 <b>g‘olib:</b> {winner}"
     )
 
 
@@ -138,7 +138,7 @@ async def contest_admin_menu(message: Message):
     await message.answer(
         "🏆 <b>Referal konkurs boshqaruvi</b>\n\n"
         "Bu yerda referal konkurslarni yaratib, boshqarasiz.\n"
-        "Ishtirokchi shartlari bajarsa, random g'olib tanlanadi.",
+        "Ishtirokchi shartlari bajarsa, random g‘olib tanlanadi.",
         parse_mode="HTML",
         reply_markup=contest_main_keyboard(),
     )
@@ -167,7 +167,7 @@ async def cn_list(callback: CallbackQuery):
 
     if not contests:
         await callback.message.edit_text(
-            "📋 Hozircha konkurs yo'q.\n\n➕ Yangisini yarating.",
+            "📋 Hozircha konkurs yo‘q.\n\n➕ Yangisini yarating.",
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
                     [
@@ -203,7 +203,7 @@ async def cn_active(callback: CallbackQuery):
         contest = await service.get_active_contest()
 
     if not contest:
-        await callback.answer("❌ Hozircha aktiv konkurs yo'q.", show_alert=True)
+        await callback.answer("❌ Hozircha aktiv konkurs yo‘q.", show_alert=True)
         return
 
     await callback.message.edit_text(
@@ -261,7 +261,7 @@ async def cn_start(callback: CallbackQuery):
 
 
 # =========================================================
-# KONKURS TO'XTATISH
+# KONKURS To‘XTATISH
 # =========================================================
 
 
@@ -269,7 +269,7 @@ async def cn_start(callback: CallbackQuery):
 async def cn_stop(callback: CallbackQuery):
     contest_id = int(callback.data.split(":")[1])
     await callback.message.edit_text(
-        "⏹ Haqiqatan ham konkursni to'xtatmoqchimisiz?",
+        "⏹ Haqiqatan ham konkursni to‘xtatmoqchimisiz?",
         reply_markup=confirm_keyboard(
             yes_cb=f"cn_stop_confirm:{contest_id}",
             no_cb=f"cn_view:{contest_id}",
@@ -289,15 +289,15 @@ async def cn_stop_confirm(callback: CallbackQuery):
         return await callback.answer("❌ Topilmadi", show_alert=True)
 
     await callback.message.edit_text(
-        f"✅ Konkurs to'xtatildi.\n\n{contest_text(contest)}",
+        f"✅ Konkurs to‘xtatildi.\n\n{contest_text(contest)}",
         parse_mode="HTML",
         reply_markup=contest_detail_keyboard(contest),
     )
-    await callback.answer("⏹ To'xtatildi!")
+    await callback.answer("⏹ To‘xtatildi!")
 
 
 # =========================================================
-# ISHTIROKCHILAR RO'YXATI
+# ISHTIROKCHILAR Ro‘YXATI
 # =========================================================
 
 
@@ -313,7 +313,7 @@ async def cn_eligible(callback: CallbackQuery):
 
     text = (
         f"👥 <b>Shart bajargan ishtirokchilar</b>\n"
-        f"(≥ {contest.min_referrals} ta ro'yxatdan o'tgan referal)\n\n"
+        f"(≥ {contest.min_referrals} ta ro‘yxatdan o‘tgan referal)\n\n"
         f"Jami: <b>{len(eligible)}</b> ta\n\n"
     )
     total_weight = sum(ref_count for _, ref_count in eligible) or 1
@@ -335,7 +335,7 @@ async def cn_eligible(callback: CallbackQuery):
 
 
 # =========================================================
-# RANDOM G'OLIB TANLASH
+# RANDOM g‘OLIB TANLASH
 # =========================================================
 
 
@@ -343,8 +343,8 @@ async def cn_eligible(callback: CallbackQuery):
 async def cn_pick(callback: CallbackQuery):
     contest_id = int(callback.data.split(":")[1])
     await callback.message.edit_text(
-        "🎲 Tasodifiy g'olib tanlansinmi?\n\n"
-        "Ko'proq referal qilgan foydalanuvchining imkoniyati yuqoriroq bo'ladi, "
+        "🎲 Tasodifiy g‘olib tanlansinmi?\n\n"
+        "Ko‘proq referal qilgan foydalanuvchining imkoniyati yuqoriroq bo‘ladi, "
         "lekin shartni bajargan har bir ishtirokchi yutishi mumkin.",
         reply_markup=confirm_keyboard(
             yes_cb=f"cn_pick_confirm:{contest_id}",
@@ -381,7 +381,7 @@ async def cn_pick_confirm(callback: CallbackQuery):
         return await callback.answer()
 
     await callback.message.edit_text(
-        f"🎉 <b>G'olib aniqlandi!</b>\n\n"
+        f"🎉 <b>g‘olib aniqlandi!</b>\n\n"
         f"🥇 <b>{winner.full_name or 'Noma`lum'}</b>\n"
         f"🆔 <code>{winner.user_id}</code>\n"
         f"📞 {winner.phone_number or '—'}\n"
@@ -398,11 +398,11 @@ async def cn_pick_confirm(callback: CallbackQuery):
             ]
         ),
     )
-    await callback.answer("🎉 G'olib tanlandi!")
+    await callback.answer("🎉 g‘olib tanlandi!")
 
 
 # =========================================================
-# O'CHIRISH
+# o‘CHIRISH
 # =========================================================
 
 
@@ -410,7 +410,7 @@ async def cn_pick_confirm(callback: CallbackQuery):
 async def cn_delete(callback: CallbackQuery):
     contest_id = int(callback.data.split(":")[1])
     await callback.message.edit_text(
-        "🗑 Haqiqatan ham o'chirmoqchimisiz?",
+        "🗑 Haqiqatan ham o‘chirmoqchimisiz?",
         reply_markup=confirm_keyboard(
             yes_cb=f"cn_delete_confirm:{contest_id}",
             no_cb=f"cn_view:{contest_id}",
@@ -429,14 +429,14 @@ async def cn_delete_confirm(callback: CallbackQuery):
         await service.delete_contest(contest_id)
 
     await callback.message.edit_text(
-        "✅ Konkurs o'chirildi.",
+        "✅ Konkurs o‘chirildi.",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="⏪ Orqaga", callback_data="cn_list")]
             ]
         ),
     )
-    await callback.answer("🗑 O'chirildi!")
+    await callback.answer("🗑 o‘chirildi!")
 
 
 # =========================================================
@@ -466,7 +466,7 @@ async def cn_create_title(message: Message, state: FSMContext):
     await state.set_state(ContestCreateState.description)
     await message.answer(
         "2️⃣ Konkurs tavsifini kiriting:\n"
-        "Tavsif kerak bo'lmasa, pastdagi tugmani bosing.",
+        "Tavsif kerak bo‘lmasa, pastdagi tugmani bosing.",
         reply_markup=skip_cancel_reply_keyboard(),
     )
 
@@ -481,7 +481,7 @@ async def cn_create_description(message: Message, state: FSMContext):
     await state.set_state(ContestCreateState.button_text)
     await message.answer(
         "3️⃣ Konkurs tugmasi bosilganda chiqadigan matnni kiriting:\n"
-        "Matn shart bo'lmasa, pastdagi tugmani bosing.",
+        "Matn shart bo‘lmasa, pastdagi tugmani bosing.",
         reply_markup=skip_cancel_reply_keyboard(),
     )
 
@@ -495,8 +495,8 @@ async def cn_create_button_text(message: Message, state: FSMContext):
     await state.update_data(button_text=button_text)
     await state.set_state(ContestCreateState.min_referrals)
     await message.answer(
-        "4️⃣ Kamida nechta do'st taklif qilinishi kerak?\n"
-        "O'tkazib yuborilsa, standart qiymat <b>10</b> ta qabul qilinadi.",
+        "4️⃣ Kamida nechta do‘st taklif qilinishi kerak?\n"
+        "o‘tkazib yuborilsa, standart qiymat <b>10</b> ta qabul qilinadi.",
         parse_mode="HTML",
         reply_markup=skip_cancel_reply_keyboard(),
     )
@@ -517,7 +517,7 @@ async def cn_create_min(message: Message, state: FSMContext):
 
     await state.set_state(ContestCreateState.prize)
     await message.answer(
-        "5️⃣ Sovg'a tavsifini kiriting:\n(masalan: <i>1 oylik Telegram Premium</i>)",
+        "5️⃣ Sovg‘a tavsifini kiriting:\n(masalan: <i>1 oylik Telegram Premium</i>)",
         parse_mode="HTML",
         reply_markup=skip_cancel_reply_keyboard(),
     )
@@ -546,7 +546,7 @@ async def cn_create_prize(message: Message, state: FSMContext):
 
     if not contest:
         return await message.answer(
-            "❌ Konkurs yaratishda xatolik yuz berdi. Qayta urinib ko'ring.",
+            "❌ Konkurs yaratishda xatolik yuz berdi. Qayta urinib ko‘ring.",
             reply_markup=admin_menu(),
         )
 
@@ -558,7 +558,7 @@ async def cn_create_prize(message: Message, state: FSMContext):
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="📋 Ko'rish", callback_data=f"cn_view:{contest.id}"
+                        text="📋 Ko‘rish", callback_data=f"cn_view:{contest.id}"
                     )
                 ]
             ]
@@ -631,10 +631,10 @@ async def cn_edit_score_value(message: Message, state: FSMContext):
             new_score = int(raw)
             if new_score < 0:
                 return await message.answer(
-                    "❌ Ball 0 dan kichik bo'lishi mumkin emas."
+                    "❌ Ball 0 dan kichik bo‘lishi mumkin emas."
                 )
     except ValueError:
-        return await message.answer("❌ Noto'g'ri format. Masalan: +5, -2, yoki 15")
+        return await message.answer("❌ Noto‘g‘ri format. Masalan: +5, -2, yoki 15")
 
     await state.clear()
 
