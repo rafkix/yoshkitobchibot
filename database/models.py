@@ -166,9 +166,12 @@ class ReferralContest(Base):
     description: Mapped[Optional[str]] = mapped_column(Text)
     button_text: Mapped[Optional[str]] = mapped_column(String(100))
     min_referrals: Mapped[int] = mapped_column(Integer, default=10)
+    prize_description: Mapped[Optional[str]] = mapped_column(Text)
     referral_score_per_user: Mapped[int] = mapped_column(Integer, default=1)
     status: Mapped[ContestStatus] = mapped_column(
-        Enum(ContestStatus), default=ContestStatus.ACTIVE
+        Enum(ContestStatus), default=ContestStatus.DRAFT
     )
     winner_user_id: Mapped[Optional[int]] = mapped_column(BigInteger)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
