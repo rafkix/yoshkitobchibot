@@ -38,9 +38,10 @@ class DirectionType(str, enum.Enum):
 
 
 class ContestStatus(str, enum.Enum):
+    DRAFT = "draft"
     ACTIVE = "active"
     FINISHED = "finished"
-
+    
 
 class User(Base):
     __tablename__ = "users"

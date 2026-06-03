@@ -46,100 +46,141 @@ class UserSearchState(StatesGroup):
 # =========================================================
 
 
-def users_list_keyboard(users: list, page: int, total: int, filter_mode: str = "all"):
-    """Foydalanuvchilar ro'yxati uchun zamonaviy interfeysli klaviatura"""
-    builder = InlineKeyboardBuilder()
+def users_list_keyboard(
+    users: list,
+    page: int,
+    total: int,
+    filter_mode: str = "all",
+):
+    kb = InlineKeyboardBuilder()
 
-    # 1. Foydalanuvchilar ro'yxati (Simmetrik dizayn)
-    for u in users:
-        name = u.full_name or "Noma'lum"
-        status_icon = "🟢" if u.is_registered else "🟡"
-        label = f"{status_icon} {name[:20]} | {u.total_score} ball"
-        builder.button(
-            text=label,
-            callback_data=f"admuv:{u.user_id}:{page}:{filter_mode}",
+    for user in users:
+        icon = "🟢" if user.is_registered else "🟡"
+
+        name = (user.full_name or "Noma'lum")[:18]
+
+        kb.button(
+            text=f"{icon} {name} • {user.total_score}b",
+            callback_data=f"admuv:{user.user_id}:{page}:{filter_mode}",
         )
-    builder.adjust(1)
 
-    # 2. Filtrlash tugmalari (Guruhlangan va chiroyli)
-    filter_buttons = []
-    filters = [
-        ("👥 Barchasi", "all"),
-        ("✅ Ro'yxatdan o‘tgan", "reg"),
-        ("⏳ O‘tmagan", "unreg"),
-    ]
-    for label, mode in filters:
-        # Aktiv filtrni vizual ajratib ko'rsatish
-        final_label = f"🔹 {label}" if filter_mode == mode else label
-        builder.button(text=final_label, callback_data=f"admuf:{mode}:0")
-    builder.adjust(3)
+    pages = max(1, (total - 1) // PAGE_SIZE + 1)
 
-    # 3. Navigatsiya (Pagination)
-    nav_buttons = []
-    if page > 0:
-        builder.button(
-            text="⬅️ Avvalgi", callback_data=f"admup:{page - 1}:{filter_mode}"
-        )
-    else:
-        builder.button(text="❌", callback_data="admup_noop")
+    kb.button(
+        text="⬅️",
+        callback_data=f"admup:{max(page - 1, 0)}:{filter_mode}",
+    )
 
-    builder.button(
-        text=f"📄 {page + 1} / {max(1, (total - 1) // PAGE_SIZE + 1)}",
+    kb.button(
+        text=f"{page + 1}/{pages}",
         callback_data="admup_noop",
     )
 
-    if (page + 1) * PAGE_SIZE < total:
-        builder.button(
-            text="Keyingi ➡️", callback_data=f"admup:{page + 1}:{filter_mode}"
-        )
-    else:
-        builder.button(text="❌", callback_data="admup_noop")
-    builder.adjust(3)
+    kb.button(
+        text="➡️",
+        callback_data=f"admup:{min(page + 1, pages - 1)}:{filter_mode}",
+    )
 
-    # 4. Boshqaruv va Ekспорт paneli
-    builder.button(text="🔍 Qidiruv", callback_data="admus")
-    builder.button(text="📥 Excel yuklash", callback_data=f"admux:{filter_mode}")
-    builder.button(text="⏪ Bosh menyu", callback_data="admub")
-    builder.adjust(2, 1)
+    kb.button(
+        text="👥 Barchasi",
+        callback_data="admuf:all:0",
+    )
 
-    return builder.as_markup()
+    kb.button(
+        text="🟢 Aktiv",
+        callback_data="admuf:reg:0",
+    )
+
+    kb.button(
+        text="🟡 Chala",
+        callback_data="admuf:unreg:0",
+    )
+
+    kb.button(
+        text="🔍 Qidiruv",
+        callback_data="admus",
+    )
+
+    kb.button(
+        text="📥 Excel",
+        callback_data=f"admux:{filter_mode}",
+    )
+
+    kb.button(
+        text="🔄 Yangilash",
+        callback_data=f"admup:{page}:{filter_mode}",
+    )
+
+    kb.button(
+        text="🏠 Bosh menyu",
+        callback_data="admub",
+    )
+
+    kb.adjust(
+        1,
+        1,
+        1,
+        3,
+        3,
+        1,
+    )
+
+    return kb.as_markup()
 
 
 def user_detail_keyboard(
     user_id: int,
-    back_page: int = 0,
-    filter_mode: str = "all",
-    is_registered: bool = True,
+    back_page: int,
+    filter_mode: str,
+    is_registered: bool,
 ):
-    """Foydalanuvchi profili ichidagi chiroyli boshqaruv tugmalari"""
-    builder = InlineKeyboardBuilder()
+    kb = InlineKeyboardBuilder()
 
-    # Operatsion tugmalar
-    builder.button(text="✉️ Xabar yo'llash", callback_data=f"admum:{user_id}")
-    builder.button(
-        text="🎯 Ballni tahrirlash",
+    kb.button(
+        text="✉️ Xabar yuborish",
+        callback_data=f"admum:{user_id}",
+    )
+
+    kb.button(
+        text="🎯 Ball tahrirlash",
         callback_data=f"admubs:{user_id}:{back_page}:{filter_mode}",
     )
 
-    # Status o'zgartirish tugmasi dinamik ranglar bilan
-    status_text = (
-        "🔴 Ro‘yxatdan o‘chirish" if is_registered else "🟢 Faollashtirish (Ro'yxat)"
-    )
-    builder.button(
-        text=status_text, callback_data=f"admust:{user_id}:{back_page}:{filter_mode}"
+    status_text = "🔴 Deaktivatsiya" if is_registered else "🟢 Aktivlashtirish"
+
+    kb.button(
+        text=status_text,
+        callback_data=f"admust:{user_id}:{back_page}:{filter_mode}",
     )
 
-    # Xavfli amallar va orqaga qaytish
-    builder.button(
-        text="🗑 Foydalanuvchini o‘chirish",
+    kb.button(
+        text="🗑 O'chirish",
         callback_data=f"admudel:{user_id}:{back_page}:{filter_mode}",
     )
-    builder.button(
-        text="⏪ Ro‘yxatga qaytish", callback_data=f"admup:{back_page}:{filter_mode}"
+
+    kb.button(
+        text="📊 Statistika",
+        callback_data=f"admustat:{user_id}",
     )
 
-    builder.adjust(2, 1, 1, 1)
-    return builder.as_markup()
+    kb.button(
+        text="👥 Referallar",
+        callback_data=f"admuref:{user_id}",
+    )
+
+    kb.button(
+        text="⬅️ Ortga",
+        callback_data=f"admup:{back_page}:{filter_mode}",
+    )
+
+    kb.adjust(
+        2,
+        2,
+        2,
+        1,
+    )
+
+    return kb.as_markup()
 
 
 def confirm_delete_keyboard(user_id: int, back_page: int = 0, filter_mode: str = "all"):
