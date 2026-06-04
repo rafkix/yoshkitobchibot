@@ -8,6 +8,7 @@ from .tests.upload_questions import router as upload_questions_router
 from .users import router as users_router
 from .contest import router as contest_router
 from .tests.test_admin import router as test_admin_router
+from .referral_admin import router as referral_admin
 
 
 def setup(dp: Dispatcher):
@@ -21,4 +22,5 @@ def setup(dp: Dispatcher):
         users_router,
         contest_router,
         test_admin_router,
+        referral_admin,
     )
