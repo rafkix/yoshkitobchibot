@@ -1,6 +1,7 @@
 # app/handlers/users/referral.py
 
 from urllib.parse import quote
+from aiogram.filters import Command
 
 from aiogram import Bot, F, Router
 from aiogram.types import InlineQuery, InlineQueryResultPhoto, Message
@@ -8,6 +9,9 @@ from aiogram.types import InlineQuery, InlineQueryResultPhoto, Message
 from app.keyboards.users.referral import inline_join_keyboard, referral_share_keyboard
 from database.database import session_maker
 from database.services.contest_service import ContestService
+from database.services.referral_service import (
+    ReferralService,
+)  # ✅ ReferralService ishlatiladi
 from database.services.user_service import UserService
 
 router = Router()
@@ -15,21 +19,27 @@ router = Router()
 PROMO_IMAGE = "https://www.yoshkitobchi.uz/media/propaganda.png"
 
 
+@router.message(Command("propaganda"))
 @router.message(F.text.in_({"🗞 Targ‘ibot", "🎁 Konkurs"}))
 async def targibot_or_contest_handler(message: Message, bot: Bot) -> None:
     user_id = message.from_user.id
 
-    # ✅ bot parametr sifatida olinadi — circular import yo‘q
     bot_info = await bot.get_me()
     bot_username = bot_info.username
 
     async with session_maker() as session:
         u_service = UserService(session)
+        r_service = ReferralService(session)  # ✅ ReferralService
         c_service = ContestService(session)
 
-        referral_link = await u_service.get_referral_link(user_id, bot_username)
-        referrals_total = await u_service.get_referrals_count(user_id)
-        referrals_registered = await u_service.get_registered_referrals_count(user_id)
+        # ✅ Barcha referral metodlar ReferralService orqali
+        referral_link = await r_service.get_referral_link(user_id, bot_username)
+        referrals_total = await r_service.get_referral_count(
+            user_id, registered_only=False
+        )
+        referrals_registered = await r_service.get_referral_count(
+            user_id, registered_only=True
+        )
         active_contest = await c_service.get_active_contest()
         user = await u_service.get_user(user_id)
         user_ref_score = user.referral_score if user else 0
@@ -92,7 +102,6 @@ async def targibot_or_contest_handler(message: Message, bot: Bot) -> None:
 async def inline_share_handler(inline_query: InlineQuery, bot: Bot) -> None:
     query = inline_query.query.strip()
 
-    # ✅ query bo‘sh bo‘lsa foydalanuvchining o‘z referral linkini olamiz
     if query.startswith("https://t.me/"):
         referral_link = query
     elif query.isdigit():

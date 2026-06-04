@@ -4,7 +4,7 @@ from .channels.add_channel import router as channels
 from .channels.view_channels import router as view_channels_router
 from .channels.delete_channel import router as delete_channel_router
 from .ads.send_ads import router as admin_ads_router
-from .ads.upload_questions import router as upload_questions_router
+from .tests.upload_questions import router as upload_questions_router
 from .users import router as users_router
 from .contest import router as contest_router
 from .tests.test_admin import router as test_admin_router

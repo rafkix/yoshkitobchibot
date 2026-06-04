@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from datetime import datetime
+from aiogram.filters import Command
 
 from app.keyboards.admin_flow import CANCEL_TEXT, cancel_reply_keyboard
 from app.keyboards.users.profile import EDITABLE_FIELDS, profile_edit_keyboard
@@ -79,7 +80,7 @@ def format_birth_date(birth_date) -> str:
 # PROFILE SHOW
 # =========================================================
 
-
+@router.message(Command("profile"))
 @router.message(F.text == "👤 Profil")
 async def profile_handler(message: Message) -> None:
     user_id = message.from_user.id

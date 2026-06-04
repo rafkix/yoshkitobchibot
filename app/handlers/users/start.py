@@ -1,172 +1,146 @@
 # app/handlers/users/start.py
 
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
-
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from database.services.user_service import UserService
-from data.config import ADMINS
+from aiogram.types import CallbackQuery, Message
 
 from app.keyboards.reply import (
-    admin_menu,
-    start_keyboard,
     main_menu_keyboard,
+    start_keyboard,
 )
+from database.database import session_maker
+from database.services.user_service import UserService
 
 router = Router()
 
 
-# =========================================================
-# START
-# =========================================================
-
-
-@router.message(CommandStart())
-async def start_handler(
-    message: Message,
-    session: AsyncSession,
+async def get_or_create_user(
+    user_id: int,
+    referred_by: int | None,
+    service: UserService,
 ):
-    service = UserService(session)
-
-    args = message.text.split()
-    referred_by = None
-
-    # =========================================
-    # REFERRAL
-    # =========================================
-
-    if len(args) > 1:
-        start_param = args[1]
-
-        if start_param.isdigit():
-            ref_id = int(start_param)
-
-            if ref_id != message.from_user.id:
-                referred_by = ref_id
-
-    # =========================================
-    # USER
-    # =========================================
-
-    user = await service.get_user(message.from_user.id)
+    user = await service.get_user(user_id)
 
     if not user:
-        user = await service.create_user(
-            user_id=message.from_user.id,
+        return await service.create_user(
+            user_id=user_id,
             referred_by=referred_by,
         )
-    elif referred_by is not None and user.referred_by is None:
-        # Mavjud foydalanuvchida referred_by yo‘q bo‘lsa — yangilash
+
+    # ✅ referred_by faqat bir marta o‘rnatiladi, o‘ziga referral bo‘lolmaydi
+    if referred_by and user.referred_by is None and referred_by != user_id:
         await service.update_referred_by(
-            user_id=message.from_user.id,
+            user_id=user_id,
             referred_by=referred_by,
         )
         user.referred_by = referred_by
 
-    # =========================================
-    # REGISTER CHECK
-    # =========================================
+    return user
 
-    if not user.is_registered:
-        return await message.answer(
-            text="<b>Assalomu alaykum! Siz yangi foydalanuvchi ekansiz, avval ro‘yxatdan o‘ting.</b>",
-            reply_markup=start_keyboard(),
+
+def extract_referral_id(
+    start_param: str | None,
+    user_id: int,
+) -> int | None:
+    if not start_param:
+        return None
+
+    if not start_param.isdigit():
+        return None
+
+    referrer_id = int(start_param)
+
+    if referrer_id == user_id:
+        return None
+
+    return referrer_id
+
+
+@router.message(CommandStart())
+async def start_handler(message: Message):
+    args = message.text.split(maxsplit=1)
+
+    referred_by = extract_referral_id(
+        args[1] if len(args) > 1 else None,
+        message.from_user.id,
+    )
+
+    async with session_maker() as session:  # ✅ session_maker orqali session olinadi
+        service = UserService(session)
+
+        user = await get_or_create_user(
+            user_id=message.from_user.id,
+            referred_by=referred_by,
+            service=service,
         )
 
-    # =========================================
-    # MAIN MENU
-    # =========================================
+    if not user.is_registered:
+        await message.answer(
+            text=(
+                "<b>Assalomu alaykum!</b>\n\n"
+                "Botdan foydalanish uchun "
+                "ro‘yxatdan o‘ting."
+            ),
+            parse_mode="HTML",
+            reply_markup=start_keyboard(),
+        )
+        return
 
     await message.answer(
         text="<b>Assalomu alaykum!</b>",
+        parse_mode="HTML",
         reply_markup=main_menu_keyboard(),
     )
-
-
-# =========================================================
-# CHECK SUBSCRIPTION CALLBACK
-# — Middleware obunani tekshirib, shu handlerga o‘tkazadi
-# =========================================================
 
 
 @router.callback_query(F.data.startswith("check"))
 async def check_subscription_callback(
     callback: CallbackQuery,
     state: FSMContext,
-    session: AsyncSession,
 ):
-    if not callback.message or not callback.from_user:
+    if not callback.message:
         return await callback.answer()
 
-    await callback.answer("Obuna tasdiqlandi")
+    await callback.answer("Obuna tasdiqlandi ✅")
 
-    # Eski xabarni o‘chirish
     try:
         await callback.message.delete()
     except Exception:
         pass
 
-    # =========================================
-    # REFERRAL — callback.data dan olish: "check:12345"
-    # =========================================
-
     referred_by = None
+
     if ":" in callback.data:
-        param = callback.data.split(":", 1)[1]
-        if param.isdigit():
-            ref_id = int(param)
-            if ref_id != callback.from_user.id:
-                referred_by = ref_id
+        start_param = callback.data.split(":", maxsplit=1)[1]
+        referred_by = extract_referral_id(
+            start_param,
+            callback.from_user.id,
+        )
 
-    # =========================================
-    # USER
-    # =========================================
+    async with session_maker() as session:  # ✅ session_maker orqali session olinadi
+        service = UserService(session)
 
-    service = UserService(session)
-    user = await service.get_user(callback.from_user.id)
-
-    if not user:
-        user = await service.create_user(
+        user = await get_or_create_user(
             user_id=callback.from_user.id,
             referred_by=referred_by,
+            service=service,
         )
-    elif referred_by is not None and user.referred_by is None:
-        await service.update_referred_by(
-            user_id=callback.from_user.id,
-            referred_by=referred_by,
-        )
-        user.referred_by = referred_by
-
-    # =========================================
-    # ADMIN CHECK
-    # =========================================
-
-    if callback.from_user.id in ADMINS:
-        await callback.message.answer(
-            text="<b>Admin panel</b>\nKerakli bo‘limni tanlang.",
-            reply_markup=admin_menu(),
-        )
-        return
-
-    # =========================================
-    # REGISTER CHECK
-    # =========================================
 
     if not user.is_registered:
         await callback.message.answer(
-            text="<b>Assalomu alaykum! Siz yangi foydalanuvchi ekansiz, avval ro‘yxatdan o‘ting.</b>",
+            text=(
+                "<b>Assalomu alaykum!</b>\n\n"
+                "Botdan foydalanish uchun "
+                "ro‘yxatdan o‘ting."
+            ),
+            parse_mode="HTML",
             reply_markup=start_keyboard(),
         )
         return
 
-    # =========================================
-    # MAIN MENU
-    # =========================================
-
     await callback.message.answer(
         text="<b>Assalomu alaykum!</b>",
+        parse_mode="HTML",
         reply_markup=main_menu_keyboard(),
     )

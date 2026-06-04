@@ -1,3 +1,4 @@
+from aiogram.filters import Command
 from aiogram import Router, F
 from aiogram.types import Message, FSInputFile
 
@@ -16,7 +17,7 @@ PRIZES_TEXT = (
     "yoshkitobchi.uz"
 )
 
-
+@router.message(Command("prizes"))
 @router.message(F.text == "🎁 Sovg‘alar")
 async def prizes_handler(message: Message):
     await message.answer_photo(

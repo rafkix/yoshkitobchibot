@@ -47,14 +47,15 @@ async def send_question(target, session_obj: TestSession, service: TestService):
     minutes, seconds = divmod(remaining, 60)
 
     text = (
-        f"⌛️ <i>Qolgan vaqt: {minutes:02d}:{seconds:02d}</i>\n\n"
-        f"❓ Savol <code>{answered + 1}/{total}</code>\n\n"
+        f"⏳ <b>Qolgan vaqt:</b> {minutes:02d}:{seconds:02d}\n\n"
+        f"📖 <b>Savol {answered + 1}/{total}</b>\n\n"
         f"{question.text}\n\n"
         f"A) {question.option_a}\n"
         f"B) {question.option_b}\n"
         f"C) {question.option_c}\n"
         f"D) {question.option_d}\n\n"
-        f"yoshkitobchi.uz"
+        f"━━━━━━━━━━━━━━\n"
+        f"Yosh Kitobxon Test Platformasi"
     )
 
     kb = question_keyboard(question.id)
@@ -76,18 +77,19 @@ async def send_question(target, session_obj: TestSession, service: TestService):
 
 
 def result_text(result: dict, expired: bool = False) -> str:
-    header = (
-        "⏰ <b>Vaqt tugadi! Test avtomatik yakunlandi.</b>\n\n"
+    title = (
+        "⏰ <b>Test vaqti yakunlandi</b>\n\n"
         if expired
-        else "🎉 <b>Test yakunlandi!</b>\n\n"
+        else "📊 <b>Test natijalari</b>\n\n"
     )
+
     return (
-        f"{header}"
+        f"{title}"
         f"✅ To‘g‘ri javoblar: <b>{result['correct']}/{result['total']}</b>\n"
-        f"📝 Javob berildi: <b>{result['answered']}</b> ta\n"
-        f"📊 Rasch ball: <b>{result['score']}</b> / 100\n"
-        f"📈 Theta (θ): {result['theta']}\n\n"
-        f"🏆 Ball reytingga qo‘shildi!"
+        f"📝 Javob berilgan savollar: <b>{result['answered']}</b>\n"
+        f"📈 Rasch ball: <b>{result['score']}</b>/100\n"
+        f"📉 Theta (θ): <b>{result['theta']}</b>\n\n"
+        f"Natija reyting tizimiga qo‘shildi."
     )
 
 
@@ -96,7 +98,7 @@ def result_text(result: dict, expired: bool = False) -> str:
 # =========================================================
 
 
-@router.message(F.text == "📄 Test")
+@router.message(F.text == "📄 Test" or "/test")
 async def test_list_show(message: Message):
     async with session_maker() as session:
         tests = await TestService(session).get_available_tests()
@@ -237,19 +239,19 @@ async def start_test(callback: CallbackQuery):
             remaining = service.remaining_seconds(session_obj)
             r_min, r_sec = divmod(remaining, 60)
             await callback.message.edit_text(
-                f"▶️ <b>Test davom ettirilmoqda.</b>\n\n"
-                f"✅ Javob berildi: <b>{answered}/{total_q}</b>\n"
-                f"🕐 Qolgan vaqt: <b>{r_min:02d}:{r_sec:02d}</b>",
+                f"📋 <b>Test davom ettirilmoqda</b>\n\n"
+                f"Javob berilgan: <b>{answered}/{total_q}</b>\n"
+                f"Qolgan vaqt: <b>{r_min:02d}:{r_sec:02d}</b>",
                 parse_mode="HTML",
             )
 
         if status == "new":
             await callback.message.edit_text(
-                f"🚀 <b>Test boshlandi!</b>\n\n"
-                f"📋 Jami: <b>{total_q} ta savol</b>\n"
-                f"🕐 Vaqt: <b>{duration_str}</b>\n\n"
-                f"Har bir savolga A, B, C yoki D tugmasini bosib javob bering.\n"
-                f"⚠️ Vaqt tugagach test avtomatik yakunlanadi.",
+                f"📋 <b>Test boshlandi</b>\n\n"
+                f"• Savollar soni: <b>{total_q}</b>\n"
+                f"• Ajratilgan vaqt: <b>{duration_str}</b>\n\n"
+                f"Har bir savol uchun mos javob variantini tanlang.\n"
+                f"Vaqt tugaganda test avtomatik ravishda yakunlanadi.",
                 parse_mode="HTML",
             )
 

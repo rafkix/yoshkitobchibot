@@ -1,10 +1,4 @@
 # app/handlers/admins/tests/test_admin.py
-"""
-Admin uchun test boshqaruvi:
-- Testlarni ko‘rish, faollashtirish/o‘chirish
-- Test vaqti va savol sonini sozlash
-- Test sessiyalarini ko‘rish
-"""
 
 from datetime import datetime, UTC, timedelta
 
@@ -18,7 +12,7 @@ from aiogram.types import (
     InlineKeyboardButton,
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 
 from app.filters.is_admin import IsAdmin
 from app.keyboards.admin_flow import CANCEL_TEXT, cancel_reply_keyboard
@@ -56,7 +50,6 @@ class TestScheduleState(StatesGroup):
 def tests_admin_main_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="📋 Testlar ro‘yxati", callback_data="ta_list")
-    builder.button(text="⚙️ Test sozlamalari", callback_data="ta_settings")
     builder.button(text="📊 Statistika", callback_data="ta_stats")
     builder.adjust(1)
     return builder.as_markup()
@@ -95,21 +88,6 @@ def test_detail_keyboard(test) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def test_settings_keyboard(max_q: int, sec_per_q: int) -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.button(
-        text=f"📝 Maks. savollar: {max_q} ta",
-        callback_data="ta_edit_max_q",
-    )
-    builder.button(
-        text=f"⏱ Har savol vaqti: {sec_per_q} sek ({sec_per_q // 60} daq)",
-        callback_data="ta_edit_sec_q",
-    )
-    builder.button(text="⏪ Orqaga", callback_data="ta_back_main")
-    builder.adjust(1)
-    return builder.as_markup()
-
-
 def confirm_clear_keyboard(test_id: int) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="✅ Ha, tozalash", callback_data=f"ta_clear_confirm:{test_id}")
@@ -124,6 +102,53 @@ def format_window(test) -> str:
     started = test.starts_at.strftime("%Y-%m-%d %H:%M") if test.starts_at else "—"
     ended = test.ends_at.strftime("%Y-%m-%d %H:%M") if test.ends_at else "—"
     return f"{started} → {ended}"
+
+
+async def render_test_detail(callback: CallbackQuery, test_id: int):
+    """Test detail xabarini ko‘rsatish — alohida funksiya, callback.data ga bog‘liq emas."""
+    async with session_maker() as session:
+        result = await session.execute(select(Test).where(Test.id == test_id))
+        test = result.scalar_one_or_none()
+        if not test:
+            await callback.answer("❌ Test topilmadi", show_alert=True)
+            return
+
+        q_count = await session.scalar(
+            select(func.count(Question.id)).where(
+                Question.test_id == test_id,
+                Question.is_active.is_(True),
+            )
+        )
+        session_count = await session.scalar(
+            select(func.count(TestSession.id)).where(TestSession.test_id == test_id)
+        )
+        completed_count = await session.scalar(
+            select(func.count(TestSession.id)).where(
+                TestSession.test_id == test_id,
+                TestSession.is_completed.is_(True),
+            )
+        )
+
+    status = "🟢 Aktiv" if test.is_active else "🔴 Faolsiz"
+    created_str = test.created_at.strftime("%Y-%m-%d") if test.created_at else "—"
+
+    text = (
+        f"📋 <b>{test.title}</b>\n\n"
+        f"📌 Holat: {status}\n"
+        f"🗓 Ochilish oynasi: <b>{format_window(test)}</b>\n"
+        f"❓ Savollar: <b>{q_count}</b> ta\n\n"
+        f"📊 <b>Sessiyalar:</b>\n"
+        f"  Jami: {session_count} ta\n"
+        f"  ✅ Tugatilgan: {completed_count} ta\n"
+        f"  ⏳ Davom etayotgan: {(session_count or 0) - (completed_count or 0)} ta\n\n"
+        f"🗓 Yaratilgan: {created_str}"
+    )
+
+    await callback.message.edit_text(
+        text,
+        parse_mode="HTML",
+        reply_markup=test_detail_keyboard(test),
+    )
 
 
 # =========================================================
@@ -181,7 +206,8 @@ async def ta_list(callback: CallbackQuery):
                 inline_keyboard=[
                     [
                         InlineKeyboardButton(
-                            text="➕ Test yaratish", callback_data="admin:create_test"
+                            text="➕ Test yaratish",
+                            callback_data="admin:create_test",
                         ),
                         InlineKeyboardButton(
                             text="⏪ Orqaga", callback_data="ta_back_main"
@@ -213,70 +239,36 @@ async def ta_list(callback: CallbackQuery):
 @router.callback_query(F.data.startswith("ta_view:"), IsAdmin(admin_ids=ADMINS))
 async def ta_view(callback: CallbackQuery):
     test_id = int(callback.data.split(":")[1])
-    async with session_maker() as session:
-        result = await session.execute(select(Test).where(Test.id == test_id))
-        test = result.scalar_one_or_none()
-        if not test:
-            return await callback.answer("❌ Test topilmadi", show_alert=True)
-
-        q_count = await session.scalar(
-            select(func.count(Question.id)).where(
-                Question.test_id == test_id,
-                Question.is_active.is_(True),
-            )
-        )
-        session_count = await session.scalar(
-            select(func.count(TestSession.id)).where(TestSession.test_id == test_id)
-        )
-        completed_count = await session.scalar(
-            select(func.count(TestSession.id)).where(
-                TestSession.test_id == test_id,
-                TestSession.is_completed.is_(True),
-            )
-        )
-
-    status = "🟢 Aktiv" if test.is_active else "🔴 Faolsiz"
-    # FIXED: created_at None bo‘lsa crash qilmaydi
-    created_str = test.created_at.strftime("%Y-%m-%d") if test.created_at else "—"
-
-    text = (
-        f"📋 <b>{test.title}</b>\n\n"
-        f"📌 Holat: {status}\n"
-        f"🗓 Ochilish oynasi: <b>{format_window(test)}</b>\n"
-        f"❓ Savollar: <b>{q_count}</b> ta\n\n"
-        f"📊 <b>Sessiyalar:</b>\n"
-        f"  Jami: {session_count} ta\n"
-        f"  ✅ Tugatilgan: {completed_count} ta\n"
-        f"  ⏳ Davom etayotgan: {(session_count or 0) - (completed_count or 0)} ta\n\n"
-        f"🗓 Yaratilgan: {created_str}"
-    )
-    await callback.message.edit_text(
-        text,
-        parse_mode="HTML",
-        reply_markup=test_detail_keyboard(test),
-    )
+    await render_test_detail(callback, test_id)
     await callback.answer()
 
 
 # =========================================================
-# TOGGLE ACTIVE
+# TOGGLE ACTIVE — To‘g‘IRLANGAN
 # =========================================================
 
 
 @router.callback_query(F.data.startswith("ta_toggle:"), IsAdmin(admin_ids=ADMINS))
 async def ta_toggle(callback: CallbackQuery):
     test_id = int(callback.data.split(":")[1])
+
     async with session_maker() as session:
-        result = await session.execute(select(Test).where(Test.id == test_id))
+        result = await session.execute(
+            select(Test).where(Test.id == test_id).with_for_update()
+        )
         test = result.scalar_one_or_none()
         if not test:
             return await callback.answer("❌ Topilmadi", show_alert=True)
-        test.is_active = not test.is_active
-        await session.commit()
-        status = "🟢 Faollashtirildi" if test.is_active else "🔴 Faolsizlashtirildi"
 
-    await callback.answer(f"{status}!")
-    await ta_view(callback)
+        test.is_active = not test.is_active
+        new_status = test.is_active
+        await session.commit()
+
+    status_text = "🟢 Faollashtirildi" if new_status else "🔴 Faolsizlashtirildi"
+    await callback.answer(f"{status_text}!")
+
+    # callback.data ni ta_view ga mos holda render qilamiz
+    await render_test_detail(callback, test_id)
 
 
 # =========================================================
@@ -286,13 +278,15 @@ async def ta_toggle(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("ta_schedule:"), IsAdmin(admin_ids=ADMINS))
 async def ta_schedule(callback: CallbackQuery):
-    _, test_id_raw, days_raw = callback.data.split(":")
-    test_id = int(test_id_raw)
-    days = int(days_raw)
+    parts = callback.data.split(":")
+    test_id = int(parts[1])
+    days = int(parts[2])
     now = datetime.now(UTC)
 
     async with session_maker() as session:
-        result = await session.execute(select(Test).where(Test.id == test_id))
+        result = await session.execute(
+            select(Test).where(Test.id == test_id).with_for_update()
+        )
         test = result.scalar_one_or_none()
         if not test:
             return await callback.answer("❌ Test topilmadi", show_alert=True)
@@ -303,7 +297,7 @@ async def ta_schedule(callback: CallbackQuery):
         await session.commit()
 
     await callback.answer(f"✅ Test {days} kunga aktiv qilindi!")
-    await ta_view(callback)
+    await render_test_detail(callback, test_id)
 
 
 @router.callback_query(
@@ -337,7 +331,9 @@ async def ta_schedule_custom_save(message: Message, state: FSMContext):
     await state.clear()
 
     async with session_maker() as session:
-        result = await session.execute(select(Test).where(Test.id == test_id))
+        result = await session.execute(
+            select(Test).where(Test.id == test_id).with_for_update()
+        )
         test = result.scalar_one_or_none()
         if not test:
             return await message.answer("❌ Test topilmadi.", reply_markup=admin_menu())
@@ -359,8 +355,11 @@ async def ta_schedule_custom_save(message: Message, state: FSMContext):
 )
 async def ta_schedule_clear(callback: CallbackQuery):
     test_id = int(callback.data.split(":")[1])
+
     async with session_maker() as session:
-        result = await session.execute(select(Test).where(Test.id == test_id))
+        result = await session.execute(
+            select(Test).where(Test.id == test_id).with_for_update()
+        )
         test = result.scalar_one_or_none()
         if not test:
             return await callback.answer("❌ Test topilmadi", show_alert=True)
@@ -371,7 +370,7 @@ async def ta_schedule_clear(callback: CallbackQuery):
         await session.commit()
 
     await callback.answer("✅ Test doimiy ochiq qilindi!")
-    await ta_view(callback)
+    await render_test_detail(callback, test_id)
 
 
 # =========================================================
@@ -399,9 +398,8 @@ async def ta_clear_sessions(callback: CallbackQuery):
     F.data.startswith("ta_clear_confirm:"), IsAdmin(admin_ids=ADMINS)
 )
 async def ta_clear_confirm(callback: CallbackQuery):
-    from sqlalchemy import delete
-
     test_id = int(callback.data.split(":")[1])
+
     async with session_maker() as session:
         await session.execute(delete(TestSession).where(TestSession.test_id == test_id))
         await session.commit()
@@ -413,7 +411,8 @@ async def ta_clear_confirm(callback: CallbackQuery):
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="⏪ Testga qaytish", callback_data=f"ta_view:{test_id}"
+                        text="⏪ Testga qaytish",
+                        callback_data=f"ta_view:{test_id}",
                     )
                 ]
             ]
@@ -445,12 +444,13 @@ async def ta_stats(callback: CallbackQuery):
     text = (
         "📊 <b>Test statistikasi</b>\n\n"
         f"📋 Jami testlar: <b>{total_tests}</b> ta\n"
-        f"  🟢 Aktiv: <b>{active_tests}</b> ta\n"
-        f"  🔴 Faolsiz: <b>{(total_tests or 0) - (active_tests or 0)}</b> ta\n\n"
+        f"🟢 Aktiv: <b>{active_tests}</b> ta\n"
+        f"🔴 Faolsiz: <b>{(total_tests or 0) - (active_tests or 0)}</b> ta\n\n"
         f"❓ Faol savollar: <b>{total_questions}</b> ta\n\n"
         f"📝 Jami sessiyalar: <b>{total_sessions}</b> ta\n"
-        f"  ✅ Tugatilgan: <b>{completed_sessions}</b> ta\n"
-        f"  ⏳ Davom etayotgan: <b>{(total_sessions or 0) - (completed_sessions or 0)}</b> ta"
+        f"✅ Tugatilgan: <b>{completed_sessions}</b> ta\n"
+        f"⏳ Davom etayotgan: "
+        f"<b>{(total_sessions or 0) - (completed_sessions or 0)}</b> ta"
     )
     await callback.message.edit_text(
         text,

@@ -206,6 +206,9 @@ def admin_menu() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="👥 Foydalanuvchilar"),
                 KeyboardButton(text="🏆 Konkurs"),
             ],
+            [
+                KeyboardButton(text="🔗 Referral boshqaruv"),  # ← YANGI TUGMA
+            ]
         ],
         resize_keyboard=True,
         input_field_placeholder="Admin panel",

@@ -72,11 +72,6 @@ def test_main_keyboard():
         InlineKeyboardButton(text="➕ Test yaratish", callback_data="admin:create_test")
     )
     builder.add(
-        InlineKeyboardButton(
-            text="📋 Testlar ro‘yxati", callback_data="admin:list_tests"
-        )
-    )
-    builder.add(
         InlineKeyboardButton(text="📥 Savol yuklash", callback_data="admin:upload")
     )
     builder.add(InlineKeyboardButton(text="📊 Statistika", callback_data="admin:stat"))
@@ -116,17 +111,8 @@ def upload_mode_keyboard(test_id: int):
 
 
 # =========================================================
-# ADMIN PANEL KIRISH
+# ADMIN MENU CALLBACK (markaziy kirish nuqtasi)
 # =========================================================
-
-
-@router.message(F.text == "📋 Testlar ro‘yxati", IsAdmin(admin_ids=ADMINS))
-async def admin_panel(message: Message):
-    await message.answer(
-        "⚙️ <b>Test panel</b>\n\nNimani qilmoqchisiz?",
-        parse_mode="HTML",
-        reply_markup=test_main_keyboard(),
-    )
 
 
 @router.callback_query(F.data == "admin:menu", IsAdmin(admin_ids=ADMINS))
@@ -175,47 +161,6 @@ async def handle_test_title(message: Message):
         parse_mode="HTML",
         reply_markup=test_main_keyboard(),
     )
-
-
-# =========================================================
-# TESTLAR Ro‘YXATI
-# =========================================================
-
-
-@router.callback_query(F.data == "admin:list_tests", IsAdmin(admin_ids=ADMINS))
-async def list_tests(callback: CallbackQuery):
-    tests = await get_tests()
-
-    if not tests:
-        await callback.message.edit_text(
-            "📭 Hech qanday test yo‘q.", reply_markup=back_button()
-        )
-        await callback.answer()
-        return
-
-    async with session_maker() as session:
-        lines = ["📋 <b>Testlar ro‘yxati:</b>\n"]
-        for t in tests:
-            # Jami va faol savollar
-            q_total = await session.scalar(
-                select(func.count(Question.id)).where(Question.test_id == t.id)
-            )
-            q_active = await session.scalar(
-                select(func.count(Question.id)).where(
-                    Question.test_id == t.id,
-                    Question.is_active.is_(True),
-                )
-            )
-            icon = "✅" if t.is_active else "❌"
-            lines.append(
-                f"{icon} <b>{t.title}</b>\n"
-                f"   🆔 {t.id} | 📝 {q_active}/{q_total} ta faol savol"
-            )
-
-    await callback.message.edit_text(
-        "\n".join(lines), parse_mode="HTML", reply_markup=back_button()
-    )
-    await callback.answer()
 
 
 # =========================================================

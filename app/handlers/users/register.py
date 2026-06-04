@@ -1,8 +1,10 @@
 # app/handlers/users/register.py
 
-from datetime import datetime
+import re
+from datetime import date, datetime
+from aiogram.filters import Command
 
-from aiogram import Router, F
+from aiogram import Bot, Router, F
 from aiogram.types import (
     Message,
     Contact,
@@ -18,8 +20,6 @@ from database.services.user_service import UserService
 from database.database import session_maker
 
 from app.states.register import RegisterState
-
-from main import bot
 
 from app.keyboards.reply import (
     regions_keyboard,
@@ -38,21 +38,21 @@ router = Router()
 
 
 # =========================================================
-# HELPERS
+# KONSTANTLAR
 # =========================================================
 
 CONTEST_LABELS = {
-    ContestType.YOSH_KITOBXON_2026: "\u201cYosh kitobxon\u201d tanlovi 2026",
+    ContestType.YOSH_KITOBXON_2026: '"Yosh kitobxon" tanlovi 2026',
 }
 
 DIRECTION_LABELS = {
-    DirectionType.AGE_10_14: "10-14 yosh toifasi",
-    DirectionType.AGE_15_19: "15-19 yosh toifasi",
+    DirectionType.AGE_10_14: "10-14 yosh toifasi (2012-2016)",
+    DirectionType.AGE_15_19: "15-19 yosh toifasi (2007-2011)",
     DirectionType.AGE_20_30: "20-30 yosh toifasi (1996-2006)",
 }
 
 CONTEST_MAPPING = {
-    "\u201cYosh kitobxon\u201d tanlovi 2026": ContestType.YOSH_KITOBXON_2026,
+    '"Yosh kitobxon" tanlovi 2026': ContestType.YOSH_KITOBXON_2026,
 }
 
 DIRECTION_MAPPING = {
@@ -61,77 +61,207 @@ DIRECTION_MAPPING = {
     "20-30 yosh toifasi (1996-2006)": DirectionType.AGE_20_30,
 }
 
+# Yo‘nalishga mos tug‘ilgan yil oralig‘i
+DIRECTION_BIRTH_YEARS = {
+    DirectionType.AGE_10_14: (2012, 2016),
+    DirectionType.AGE_15_19: (2007, 2011),
+    DirectionType.AGE_20_30: (1996, 2006),
+}
+
+# Kirill alifbosi harflari (o‘zbek kirill)
+CYRILLIC_PATTERN = re.compile(r"^[А-Яа-яЁёҒғҚқҲҳЎўҚқ\s'\-]+$")
+
+# o‘zbek telefon raqami
+PHONE_PATTERN = re.compile(r"^\+?998\s?(\d{2})\s?(\d{3})\s?(\d{2})\s?(\d{2})$")
+
+
+# =========================================================
+# VALIDATSIYA FUNKSIYALARI
+# =========================================================
+
+
+def validate_full_name(text: str) -> tuple[bool, str]:
+    """
+    F.I.Sh validatsiyasi:
+    - Kamida 3 so‘z
+    - Faqat kirill harflar
+    - Oxirgi so‘z "o‘g‘li" yoki "qizi" bilan tugashi shart
+    """
+    if not text or not text.strip():
+        return False, "❌ Ism bo‘sh bo‘lishi mumkin emas."
+
+    words = text.strip().split()
+
+    if len(words) < 3:
+        return False, (
+            "❌ <b>Kamida 3 so‘z kiriting.</b>\n\n"
+            "📌 To‘g‘ri namuna:\n"
+            "<i>Abdullayev Abdullajon Abdulla o‘g‘li</i>\n"
+            "<i>Toshmatova Nilufar Bahodir qizi</i>"
+        )
+
+    last_word = words[-1].lower()
+    if last_word not in ("o‘g‘li", "qizi", "o\u02bbg\u02bbli"):
+        return False, (
+            "❌ <b>Oxirgi so‘z <u>o‘g‘li</u> yoki <u>qizi</u> bo‘lishi shart.</b>\n\n"
+            "📌 To‘g‘ri namuna:\n"
+            "<i>Abdullayev Abdullajon Abdulla o‘g‘li</i>\n"
+            "<i>Toshmatova Nilufar Bahodir qizi</i>"
+        )
+
+    # o‘g‘li / qizi dan oldingi so‘zlarni kirill tekshiruv
+    check_words = words[:-1]
+    for word in check_words:
+        if not CYRILLIC_PATTERN.match(word):
+            return False, (
+                "❌ <b>Faqat kirill harflarida yozing.</b>\n\n"
+                "📌 To‘g‘ri namuna:\n"
+                "<i>Abdullayev Abdullajon Abdulla o‘g‘li</i>"
+            )
+
+    return True, ""
+
+
+def validate_birth_date(text: str) -> tuple[bool, str, date | None]:
+    """
+    Tug‘ilgan sana validatsiyasi:
+    - DD.MM.YYYY format
+    - Kelajakdagi sana bo‘lmasligi
+    - Yosh 10-35 oralig‘ida
+    """
+    try:
+        birth_date = datetime.strptime(text.strip(), "%d.%m.%Y").date()
+    except ValueError:
+        return (
+            False,
+            (
+                "❌ <b>Sana noto‘g‘ri formatda.</b>\n\n"
+                "📌 Format: <code>KK.OO.YYYY</code>\n"
+                "✅ Namuna: <code>15.03.2005</code>"
+            ),
+            None,
+        )
+
+    today = date.today()
+    if birth_date >= today:
+        return False, "❌ Tug‘ilgan sana kelajakda bo‘lishi mumkin emas.", None
+
+    age = (today - birth_date).days // 365
+    if age < 10 or age > 35:
+        return (
+            False,
+            (
+                "❌ <b>Yoshingiz 10 dan 35 gacha bo‘lishi kerak.</b>\n"
+                f"Siz kiritgan sana bo‘yicha yoshingiz: <b>{age}</b>"
+            ),
+            None,
+        )
+
+    return True, "", birth_date
+
+
+def validate_birth_date_by_direction(
+    birth_date: date,
+    direction: DirectionType,
+) -> tuple[bool, str]:
+    """
+    Tug‘ilgan yilni tanlangan yo‘nalishga mosligini tekshirish.
+    """
+    min_year, max_year = DIRECTION_BIRTH_YEARS[direction]
+    birth_year = birth_date.year
+
+    if not (min_year <= birth_year <= max_year):
+        direction_label = DIRECTION_LABELS[direction]
+        return False, (
+            f"❌ <b>Tug‘ilgan yilingiz ({birth_year}) tanlangan yo‘nalishga mos kelmaydi.</b>\n\n"
+            f"📌 <b>{direction_label}</b> uchun tug‘ilgan yil: "
+            f"<b>{min_year}–{max_year}</b> bo‘lishi kerak."
+        )
+
+    return True, ""
+
+
+def validate_phone_manual(text: str) -> tuple[bool, str]:
+    """
+    Qo‘lda kiritilgan telefon raqam validatsiyasi.
+    """
+    cleaned = text.strip().replace(" ", "").replace("-", "")
+
+    if not PHONE_PATTERN.match(cleaned):
+        return False, (
+            "❌ <b>Telefon raqam noto‘g‘ri formatda.</b>\n\n"
+            "📌 Format: <code>+998 XX XXX XX XX</code>\n"
+            "✅ Namuna: <code>+998 90 123 45 67</code>"
+        )
+
+    return True, ""
+
+
+# =========================================================
+# HELPERS
+# =========================================================
+
 
 def edit_fields_keyboard() -> InlineKeyboardMarkup:
-    """Confirm sahifasida har bir maydon uchun tahrirlash tugmalari."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
+                InlineKeyboardButton(text="F.I.Sh", callback_data="edit:full_name"),
                 InlineKeyboardButton(
-                    text="F.I.Sh o‘zgartirish", callback_data="edit:full_name"
-                ),
-                InlineKeyboardButton(
-                    text="Tug‘ilgan sana o‘zgartirish",
-                    callback_data="edit:birth_date",
+                    text="Tug‘ilgan sana", callback_data="edit:birth_date"
                 ),
             ],
             [
+                InlineKeyboardButton(text="Hudud", callback_data="edit:region"),
+                InlineKeyboardButton(text="Tuman", callback_data="edit:district"),
+            ],
+            [
+                InlineKeyboardButton(text="Mahalla", callback_data="edit:neighborhood"),
                 InlineKeyboardButton(
-                    text="Hudud o‘zgartirish", callback_data="edit:region"
-                ),
-                InlineKeyboardButton(
-                    text="Tuman o‘zgartirish", callback_data="edit:district"
+                    text="Ish/o‘qish joyi", callback_data="edit:workplace"
                 ),
             ],
             [
+                InlineKeyboardButton(text="Telefon", callback_data="edit:phone"),
                 InlineKeyboardButton(
-                    text="Mahalla o‘zgartirish", callback_data="edit:neighborhood"
-                ),
-                InlineKeyboardButton(
-                    text="Ish/o‘qish joyi o‘zgartirish",
-                    callback_data="edit:workplace",
+                    text="Tanlov/yo‘nalish", callback_data="edit:contest"
                 ),
             ],
             [
-                InlineKeyboardButton(
-                    text="Telefon o‘zgartirish", callback_data="edit:phone"
-                ),
-                InlineKeyboardButton(
-                    text="Tanlov/yo‘nalish o‘zgartirish",
-                    callback_data="edit:contest",
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text="\u2705 Tasdiqlash", callback_data="confirm:yes"
-                ),
+                InlineKeyboardButton(text="Tasdiqlash", callback_data="confirm:yes"),
             ],
         ]
     )
 
 
 async def show_confirm(message: Message, state: FSMContext):
-    """Confirm xabarini ko‘rsatish."""
     data = await state.get_data()
+
+    contest_label = CONTEST_LABELS.get(
+        data.get("contest"), str(data.get("contest", "—"))
+    )
+    direction_label = DIRECTION_LABELS.get(
+        data.get("direction"), str(data.get("direction", "—"))
+    )
 
     text = (
         "<b>Ma'lumotlaringizni tasdiqlang:</b>\n\n"
-        f"<b>F.I.Sh:</b> {data['full_name']}\n"
-        f"<b>Tug‘ilgan sana:</b> {data['birth_date']}\n"
-        f"<b>Yashash joyi:</b> {data['region']}, {data['district']}, {data['neighborhood']}\n"
-        f"<b>Ish/o‘qish:</b> {data['workplace']}\n"
-        f"<b>Telefon:</b> <code>{data['phone_number']}</code>\n\n"
-        f"<b>Tanlov:</b> {CONTEST_LABELS[data['contest']]}\n"
-        f"<b>Yo‘nalish:</b> {DIRECTION_LABELS[data['direction']]}\n\n"
+        f"<b>F.I.Sh:</b> {data.get('full_name', '—')}\n"
+        f"<b>Tug‘ilgan sana:</b> {data.get('birth_date', '—')}\n"
+        f"<b>Yashash joyi:</b> {data.get('region', '—')}, "
+        f"{data.get('district', '—')}, {data.get('neighborhood', '—')}\n"
+        f"<b>Ish/o‘qish:</b> {data.get('workplace', '—')}\n"
+        f"<b>Telefon:</b> <code>{data.get('phone_number', '—')}</code>\n\n"
+        f"<b>Tanlov:</b> {contest_label}\n"
+        f"<b>Yo‘nalish:</b> {direction_label}\n\n"
         "<i>Tahrirlash uchun tegishli tugmani bosing.</i>"
     )
 
     await state.set_state(RegisterState.confirm)
-    await message.answer(text, reply_markup=edit_fields_keyboard())
+    await message.answer(text, parse_mode="HTML", reply_markup=edit_fields_keyboard())
 
 
 def is_editing(data: dict) -> bool:
-    """Foydalanuvchi allaqachon ro‘yxatdan o‘tishni yakunlagan (tahrirlash rejimi)."""
     return bool(data.get("contest") and data.get("direction"))
 
 
@@ -149,12 +279,20 @@ def find_mahalla(district_id: int, text: str) -> dict | None:
 # =========================================================
 
 
+@router.message(Command("register"))
 @router.message(F.text == "📝 Ro‘yxatdan o‘tish")
 async def start_registration(message: Message, state: FSMContext):
     await state.set_state(RegisterState.full_name)
     await message.answer(
-        "<b>Familiya, ism va sharifingizni kiriting.</b>\n"
-        "<i>(Abdullayev Abdullajon Abdulla o‘g‘li)</i>",
+        "<b>Familiya, ism va sharifingizni kiriting.</b>\n\n"
+        "📌 <b>Qoidalar:</b>\n"
+        "• Faqat kirill harflarida yozing\n"
+        "• Kamida 3 so‘z bo‘lishi shart\n"
+        "• Oxirida <b>o‘g‘li</b> yoki <b>qizi</b> deb yozing\n\n"
+        "✅ <b>To‘g‘ri namuna:</b>\n"
+        "<i>Abdullayev Abdullajon Abdulla o‘g‘li</i>\n"
+        "<i>Toshmatova Nilufar Bahodir qizi</i>",
+        parse_mode="HTML",
         reply_markup=ReplyKeyboardRemove(),
     )
 
@@ -166,7 +304,11 @@ async def start_registration(message: Message, state: FSMContext):
 
 @router.message(RegisterState.full_name)
 async def process_full_name(message: Message, state: FSMContext):
-    await state.update_data(full_name=message.text)
+    ok, err = validate_full_name(message.text or "")
+    if not ok:
+        return await message.answer(err, parse_mode="HTML")
+
+    await state.update_data(full_name=message.text.strip())
     data = await state.get_data()
 
     if is_editing(data):
@@ -174,7 +316,10 @@ async def process_full_name(message: Message, state: FSMContext):
 
     await state.set_state(RegisterState.birth_date)
     await message.answer(
-        "<b>Tug‘ilgan sana va yilingizni kiriting.</b>\n<i>(Namuna: 31.01.2010)</i>",
+        "<b>Tug‘ilgan sana va yilingizni kiriting.</b>\n\n"
+        "Format: <code>KK.OO.YYYY</code>\n"
+        "Namuna: <code>15.03.2005</code>",
+        parse_mode="HTML",
         reply_markup=ReplyKeyboardRemove(),
     )
 
@@ -186,22 +331,31 @@ async def process_full_name(message: Message, state: FSMContext):
 
 @router.message(RegisterState.birth_date)
 async def process_birth_date(message: Message, state: FSMContext):
-    try:
-        birth_date = datetime.strptime(message.text, "%d.%m.%Y").date()
-    except ValueError:
-        return await message.answer(
-            "<b>Sana noto‘g‘ri formatda.</b>\n\n<i>(Namuna: 31.01.2010)</i>"
-        )
+    ok, err, birth_date = validate_birth_date(message.text or "")
+    if not ok:
+        return await message.answer(err, parse_mode="HTML")
 
     await state.update_data(birth_date=birth_date)
     data = await state.get_data()
+
+    # Agar yo‘nalish allaqachon tanlangan bo‘lsa — mosligini tekshir
+    if data.get("direction"):
+        ok2, err2 = validate_birth_date_by_direction(birth_date, data["direction"])
+        if not ok2:
+            return await message.answer(
+                err2
+                + "\n\n📌 Yo‘nalishni o‘zgartirish uchun pastdagi tugmadan foydalaning.",
+                parse_mode="HTML",
+                reply_markup=edit_fields_keyboard(),
+            )
 
     if is_editing(data):
         return await show_confirm(message, state)
 
     await state.set_state(RegisterState.region)
     await message.answer(
-        "<b>Hududingizni tanlang.</b>",
+        "🗺 <b>Hududingizni tanlang.</b>",
+        parse_mode="HTML",
         reply_markup=regions_keyboard(),
     )
 
@@ -217,7 +371,8 @@ async def process_region(message: Message, state: FSMContext):
 
     if not selected:
         return await message.answer(
-            "<i>Hududni tugmalar orqali tanlang.</i>",
+            "❌ <i>Hududni tugmalar orqali tanlang.</i>",
+            parse_mode="HTML",
             reply_markup=regions_keyboard(),
         )
 
@@ -232,6 +387,7 @@ async def process_region(message: Message, state: FSMContext):
     await state.set_state(RegisterState.district)
     await message.answer(
         "<b>Tuman/shaharni tanlang.</b>",
+        parse_mode="HTML",
         reply_markup=districts_keyboard(selected["id"]),
     )
 
@@ -246,6 +402,7 @@ async def back_to_region(message: Message, state: FSMContext):
     await state.set_state(RegisterState.region)
     await message.answer(
         "<b>Hududingizni tanlang.</b>",
+        parse_mode="HTML",
         reply_markup=regions_keyboard(),
     )
 
@@ -266,7 +423,8 @@ async def process_district(message: Message, state: FSMContext):
 
     if not selected:
         return await message.answer(
-            "<i>Tumanni tugmalar orqali tanlang.</i>",
+            "❌ <i>Tumanni tugmalar orqali tanlang.</i>",
+            parse_mode="HTML",
             reply_markup=districts_keyboard(region_id),
         )
 
@@ -279,6 +437,7 @@ async def process_district(message: Message, state: FSMContext):
     await state.set_state(RegisterState.neighborhood)
     await message.answer(
         "<b>Mahallani tanlang.</b>",
+        parse_mode="HTML",
         reply_markup=mahallas_keyboard(selected["id"]),
     )
 
@@ -295,6 +454,7 @@ async def back_to_district(message: Message, state: FSMContext):
     await state.set_state(RegisterState.district)
     await message.answer(
         "<b>Tuman/shaharni tanlang.</b>",
+        parse_mode="HTML",
         reply_markup=districts_keyboard(region_id) if region_id else regions_keyboard(),
     )
 
@@ -311,6 +471,7 @@ async def process_neighborhood(message: Message, state: FSMContext):
         return await message.answer(
             "<i>Mahalla ro‘yxatda topilmadi.</i>\n\n"
             "<b>Mahalla nomini o‘zingiz kiriting:</b>",
+            parse_mode="HTML",
             reply_markup=ReplyKeyboardRemove(),
         )
 
@@ -323,7 +484,8 @@ async def process_neighborhood(message: Message, state: FSMContext):
     await state.set_state(RegisterState.workplace)
     await message.answer(
         "<b>o‘qish yoki ish joyingizni kiriting.</b>\n"
-        "<i>(Namuna: Talaba, o‘zMU 2-kurs)</i>",
+        "<i>Namuna: Talaba, o‘zMU 2-kurs</i>",
+        parse_mode="HTML",
         reply_markup=ReplyKeyboardRemove(),
     )
 
@@ -335,12 +497,15 @@ async def process_neighborhood(message: Message, state: FSMContext):
 
 @router.message(RegisterState.neighborhood_manual)
 async def process_neighborhood_manual(message: Message, state: FSMContext):
-    if not message.text or len(message.text.strip()) < 2:
+    text = (message.text or "").strip()
+
+    if len(text) < 3:
         return await message.answer(
-            "<i>Mahalla nomi juda qisqa. Iltimos, to‘liq kiriting.</i>"
+            "❌ <i>Mahalla nomi juda qisqa. Kamida 3 ta harf kiriting.</i>",
+            parse_mode="HTML",
         )
 
-    await state.update_data(neighborhood=message.text.strip())
+    await state.update_data(neighborhood=text)
     data = await state.get_data()
 
     if is_editing(data):
@@ -349,7 +514,8 @@ async def process_neighborhood_manual(message: Message, state: FSMContext):
     await state.set_state(RegisterState.workplace)
     await message.answer(
         "<b>o‘qish yoki ish joyingizni kiriting.</b>\n"
-        "<i>(Namuna: Talaba, o‘zMU 2-kurs)</i>",
+        "<i>Namuna: Talaba, o‘zMU 2-kurs</i>",
+        parse_mode="HTML",
         reply_markup=ReplyKeyboardRemove(),
     )
 
@@ -361,7 +527,15 @@ async def process_neighborhood_manual(message: Message, state: FSMContext):
 
 @router.message(RegisterState.workplace)
 async def process_workplace(message: Message, state: FSMContext):
-    await state.update_data(workplace=message.text)
+    text = (message.text or "").strip()
+
+    if len(text) < 3:
+        return await message.answer(
+            "❌ <i>Ish/o‘qish joyi juda qisqa. To‘liqroq kiriting.</i>",
+            parse_mode="HTML",
+        )
+
+    await state.update_data(workplace=text)
     data = await state.get_data()
 
     if is_editing(data):
@@ -369,19 +543,30 @@ async def process_workplace(message: Message, state: FSMContext):
 
     await state.set_state(RegisterState.phone_number)
     await message.answer(
-        "<b>Telefon raqamingizni yuboring.</b>",
+        "<b>Telefon raqamingizni yuboring.</b>\n\n"
+        "Tugma orqali avtomatik yuborishingiz mumkin\n"
+        "yoki qo‘lda kiriting: <code>+998901234567</code>",
+        parse_mode="HTML",
         reply_markup=contact_keyboard(),
     )
 
 
 # =========================================================
-# PHONE NUMBER
+# PHONE NUMBER — kontakt orqali
 # =========================================================
 
 
 @router.message(RegisterState.phone_number, F.contact)
-async def process_phone_number(message: Message, state: FSMContext):
+async def process_phone_contact(message: Message, state: FSMContext):
     contact: Contact = message.contact
+
+    if contact.user_id and contact.user_id != message.from_user.id:
+        return await message.answer(
+            "❌ <b>Faqat o‘z telefon raqamingizni yuboring.</b>",
+            parse_mode="HTML",
+            reply_markup=contact_keyboard(),
+        )
+
     await state.update_data(phone_number=contact.phone_number)
     data = await state.get_data()
 
@@ -391,6 +576,34 @@ async def process_phone_number(message: Message, state: FSMContext):
     await state.set_state(RegisterState.contest)
     await message.answer(
         "<b>Ishtirok etmoqchi bo‘lgan tanlovni tanlang.</b>",
+        parse_mode="HTML",
+        reply_markup=contest_keyboard(),
+    )
+
+
+# Qo‘lda raqam kiritish
+@router.message(RegisterState.phone_number, F.text)
+async def process_phone_manual(message: Message, state: FSMContext):
+    ok, err = validate_phone_manual(message.text or "")
+    if not ok:
+        return await message.answer(
+            err, parse_mode="HTML", reply_markup=contact_keyboard()
+        )
+
+    cleaned = re.sub(r"[\s\-]", "", message.text.strip())
+    if not cleaned.startswith("+"):
+        cleaned = "+" + cleaned
+
+    await state.update_data(phone_number=cleaned)
+    data = await state.get_data()
+
+    if is_editing(data):
+        return await show_confirm(message, state)
+
+    await state.set_state(RegisterState.contest)
+    await message.answer(
+        "<b>Ishtirok etmoqchi bo‘lgan tanlovni tanlang.</b>",
+        parse_mode="HTML",
         reply_markup=contest_keyboard(),
     )
 
@@ -405,6 +618,7 @@ async def back_to_phone_number(message: Message, state: FSMContext):
     await state.set_state(RegisterState.phone_number)
     await message.answer(
         "<b>Telefon raqamingizni yuboring.</b>",
+        parse_mode="HTML",
         reply_markup=contact_keyboard(),
     )
 
@@ -416,6 +630,7 @@ async def process_contest(message: Message, state: FSMContext):
     if not selected:
         return await message.answer(
             "<i>Tanlovni tugmalar orqali tanlang.</i>",
+            parse_mode="HTML",
             reply_markup=contest_keyboard(),
         )
 
@@ -423,6 +638,7 @@ async def process_contest(message: Message, state: FSMContext):
     await state.set_state(RegisterState.direction)
     await message.answer(
         "<b>Yo‘nalishni tanlang.</b>",
+        parse_mode="HTML",
         reply_markup=direction_keyboard(),
     )
 
@@ -437,6 +653,7 @@ async def back_to_contest(message: Message, state: FSMContext):
     await state.set_state(RegisterState.contest)
     await message.answer(
         "<b>Ishtirok etmoqchi bo‘lgan tanlovni tanlang.</b>",
+        parse_mode="HTML",
         reply_markup=contest_keyboard(),
     )
 
@@ -447,9 +664,24 @@ async def process_direction(message: Message, state: FSMContext):
 
     if not selected:
         return await message.answer(
-            "<i>Yo‘nalishni tugmalar orqali tanlang.</i>",
+            "❌ <i>Yo‘nalishni tugmalar orqali tanlang.</i>",
+            parse_mode="HTML",
             reply_markup=direction_keyboard(),
         )
+
+    data = await state.get_data()
+
+    # Tug‘ilgan sana yo‘nalishga mos kelishini tekshirish
+    birth_date = data.get("birth_date")
+    if birth_date:
+        ok, err = validate_birth_date_by_direction(birth_date, selected)
+        if not ok:
+            return await message.answer(
+                err
+                + "\n\n📌 <b>Boshqa yo‘nalish tanlang yoki tug‘ilgan sanangizni o‘zgartiring.</b>",
+                parse_mode="HTML",
+                reply_markup=direction_keyboard(),
+            )
 
     await state.update_data(direction=selected)
     await show_confirm(message, state)
@@ -464,14 +696,25 @@ async def process_direction(message: Message, state: FSMContext):
 async def confirm_registration(
     callback: CallbackQuery,
     state: FSMContext,
+    bot: Bot,
 ):
     data = await state.get_data()
 
+    # Yakuniy tekshiruv
+    birth_date = data.get("birth_date")
+    direction = data.get("direction")
+    if birth_date and direction:
+        ok, err = validate_birth_date_by_direction(birth_date, direction)
+        if not ok:
+            await callback.answer("Yo‘nalish va yoshingiz mos emas!", show_alert=True)
+            return
+
     async with session_maker() as session:
         user_service = UserService(session)
+
         await user_service.complete_registration(
             user_id=callback.from_user.id,
-            bot=bot,  # ✅ referrerga xabar yuborish uchun
+            bot=bot,
             full_name=data["full_name"],
             birth_date=data["birth_date"],
             region=data["region"],
@@ -482,16 +725,19 @@ async def confirm_registration(
             contest=data["contest"],
             direction=data["direction"],
         )
-        await session.commit()
 
     await state.clear()
+
     await callback.message.edit_text(
-        "<b>Tabriklaymiz, siz muvaffaqiyatli ro‘yxatdan o‘tdingiz!</b>",
+        "✅ <b>Tabriklaymiz, siz muvaffaqiyatli ro‘yxatdan o‘tdingiz!</b>",
+        parse_mode="HTML",
     )
+
     await callback.message.answer(
         "Asosiy menyu:",
         reply_markup=main_menu_keyboard(),
     )
+
     await callback.answer()
 
 
@@ -510,23 +756,31 @@ async def handle_edit(callback: CallbackQuery, state: FSMContext):
     if field == "full_name":
         await state.set_state(RegisterState.full_name)
         await callback.message.answer(
-            "<b>Familiya, ism va sharifingizni kiriting.</b>\n"
-            "<i>(Abdullayev Abdullajon Abdulla o‘g‘li)</i>",
+            "👤 <b>Familiya, ism va sharifingizni kiriting.</b>\n\n"
+            "📌 <b>Qoidalar:</b>\n"
+            "• Faqat kirill harflarida yozing\n"
+            "• Kamida 3 so‘z bo‘lishi shart\n"
+            "• Oxirida <b>o‘g‘li</b> yoki <b>qizi</b> deb yozing\n\n"
+            "✅ Namuna: <i>Abdullayev Abdullajon Abdulla o‘g‘li</i>",
+            parse_mode="HTML",
             reply_markup=ReplyKeyboardRemove(),
         )
 
     elif field == "birth_date":
         await state.set_state(RegisterState.birth_date)
         await callback.message.answer(
-            "<b>Tug‘ilgan sana va yilingizni kiriting.</b>\n"
-            "<i>(Namuna: 31.01.2010)</i>",
+            "📅 <b>Tug‘ilgan sana va yilingizni kiriting.</b>\n\n"
+            "📌 Format: <code>KK.OO.YYYY</code>\n"
+            "✅ Namuna: <code>15.03.2005</code>",
+            parse_mode="HTML",
             reply_markup=ReplyKeyboardRemove(),
         )
 
     elif field == "region":
         await state.set_state(RegisterState.region)
         await callback.message.answer(
-            "<b>Hududingizni tanlang.</b>",
+            "🗺 <b>Hududingizni tanlang.</b>",
+            parse_mode="HTML",
             reply_markup=regions_keyboard(),
         )
 
@@ -535,13 +789,15 @@ async def handle_edit(callback: CallbackQuery, state: FSMContext):
         if region_id:
             await state.set_state(RegisterState.district)
             await callback.message.answer(
-                "<b>Tuman/shaharni tanlang.</b>",
+                "🏙 <b>Tuman/shaharni tanlang.</b>",
+                parse_mode="HTML",
                 reply_markup=districts_keyboard(region_id),
             )
         else:
             await state.set_state(RegisterState.region)
             await callback.message.answer(
-                "<b>Avval hududni tanlang.</b>",
+                "🗺 <b>Avval hududni tanlang.</b>",
+                parse_mode="HTML",
                 reply_markup=regions_keyboard(),
             )
 
@@ -550,14 +806,16 @@ async def handle_edit(callback: CallbackQuery, state: FSMContext):
         if district_id:
             await state.set_state(RegisterState.neighborhood)
             await callback.message.answer(
-                "<b>Mahallani tanlang.</b>",
+                "🏘 <b>Mahallani tanlang.</b>",
+                parse_mode="HTML",
                 reply_markup=mahallas_keyboard(district_id),
             )
         else:
             region_id = data.get("region_id")
             await state.set_state(RegisterState.district)
             await callback.message.answer(
-                "<b>Avval tumanni tanlang.</b>",
+                "🏙 <b>Avval tumanni tanlang.</b>",
+                parse_mode="HTML",
                 reply_markup=districts_keyboard(region_id)
                 if region_id
                 else regions_keyboard(),
@@ -566,15 +824,17 @@ async def handle_edit(callback: CallbackQuery, state: FSMContext):
     elif field == "workplace":
         await state.set_state(RegisterState.workplace)
         await callback.message.answer(
-            "<b>o‘qish yoki ish joyingizni kiriting.</b>\n"
-            "<i>(Namuna: Talaba, o‘zMU 2-kurs)</i>",
+            "🏫 <b>o‘qish yoki ish joyingizni kiriting.</b>\n"
+            "<i>Namuna: Talaba, o‘zMU 2-kurs</i>",
+            parse_mode="HTML",
             reply_markup=ReplyKeyboardRemove(),
         )
 
     elif field == "phone":
         await state.set_state(RegisterState.phone_number)
         await callback.message.answer(
-            "<b>Telefon raqamingizni yuboring.</b>",
+            "📞 <b>Telefon raqamingizni yuboring.</b>",
+            parse_mode="HTML",
             reply_markup=contact_keyboard(),
         )
 
@@ -582,7 +842,8 @@ async def handle_edit(callback: CallbackQuery, state: FSMContext):
         await state.update_data(direction=None)
         await state.set_state(RegisterState.contest)
         await callback.message.answer(
-            "<b>Ishtirok etmoqchi bo‘lgan tanlovni tanlang.</b>",
+            "🏆 <b>Ishtirok etmoqchi bo‘lgan tanlovni tanlang.</b>",
+            parse_mode="HTML",
             reply_markup=contest_keyboard(),
         )
 

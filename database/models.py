@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
     JSON,  # 💡 o‘zgarish: JSON import qilindi
 )
@@ -146,6 +147,14 @@ class Channel(Base):
 
 class ChannelJoin(Base):
     __tablename__ = "channel_joins"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "channel_id",
+            name="uq_user_channel_join",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(

@@ -1,3 +1,5 @@
+from aiogram.filters import Command
+
 from aiogram import F, Router
 from aiogram.types import Message
 
@@ -9,6 +11,7 @@ router = Router()
 MEDALS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
 
 
+@router.message(Command("reyting"))
 @router.message(F.text == "📊 Reyting")
 async def rating_handler(message: Message) -> None:
     user_id = message.from_user.id
